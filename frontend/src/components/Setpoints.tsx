@@ -129,11 +129,11 @@ export default function Setpoints({ config, onSave }: SetpointsProps) {
   }
 
   return (
-    <div ref={containerRef} style={{ trade: 'relative' }}>
+    <div ref={containerRef} style={{ position: 'relative' }}>
       {/* Toast */}
       {toast && (
         <div style={{
-          trade: 'fixed', bottom: 20, right: 20, zIndex: 999,
+          position: 'fixed', bottom: 20, right: 20, zIndex: 999,
           background: 'var(--ink-3)', border: '1px solid rgba(212,255,0,0.3)',
           borderRadius: 'var(--r)', padding: '9px 16px',
           fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--live)',
@@ -160,7 +160,7 @@ export default function Setpoints({ config, onSave }: SetpointsProps) {
                 borderRadius: 'var(--r)',
                 padding: '11px 13px',
                 cursor: 'pointer',
-                trade: 'relative',
+                position: 'relative',
                 transition: 'all 0.15s',
                 userSelect: 'none',
               }}
@@ -192,7 +192,7 @@ export default function Setpoints({ config, onSave }: SetpointsProps) {
                 <div
                   onClick={e => e.stopPropagation()}
                   style={{
-                    trade: 'absolute', left: 0, right: 0, top: 'calc(100% + 6px)',
+                    position: 'absolute', left: 0, right: 0, top: 'calc(100% + 6px)',
                     background: 'var(--ink-2)', border: `1px solid ${param.color}44`,
                     borderRadius: 'var(--r)', padding: '13px 14px', zIndex: 40,
                     boxShadow: '0 8px 28px rgba(0,0,0,0.55)',

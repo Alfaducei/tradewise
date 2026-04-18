@@ -209,7 +209,7 @@ tbody tr:hover { background: rgba(255,255,255,0.015); }
 
 /* ── AI THINKING COMPONENT ─────────────────────────────────────────────────── */
 .ai-brain-wrapper {
-  trade: relative;
+  position: relative;
   overflow: hidden;
 }
 

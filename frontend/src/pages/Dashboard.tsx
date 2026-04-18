@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { getPortfolio } from '../api/client'
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { TrendingUp, TrendingDown, DollarSign, Activity } from 'lucide-react'
 
 interface Trade {

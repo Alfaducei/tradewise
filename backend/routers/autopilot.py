@@ -13,6 +13,7 @@ class AgentConfig(BaseModel):
     take_profit_pct: Optional[float] = None
     cycle_interval_seconds: Optional[int] = None
     min_confidence: Optional[float] = None
+    demo_mode: Optional[bool] = None
 
 
 @router.post("/start")
@@ -89,7 +90,7 @@ async def chart_data():
                 "portfolio_value": s.portfolio_value,
                 "pnl_pct": s.pnl_pct_since_start,
                 "cash": s.cash,
-                "open_positions": s.open_positions,
+                "open_trades": s.open_trades,
                 "time": s.snapped_at.isoformat(),
                 "trades": trade_map.get(s.cycle, []),
             }

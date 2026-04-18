@@ -107,8 +107,8 @@ export function AIBrain({
         const sweep = (t * 0.02) % (Math.PI * 2)
         ctx.save()
         ctx.translate(cx, cy)
-        const grad = ctx.createConicalGradient
-          ? ctx.createConicalGradient(0, 0, sweep - 0.8, sweep)
+        const grad = ctx.createConicGradient
+          ? ctx.createConicGradient(sweep, 0, 0)
           : null
         if (!grad) {
           // Fallback arc

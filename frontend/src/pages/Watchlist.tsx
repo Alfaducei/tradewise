@@ -62,7 +62,7 @@ export default function Watchlist() {
     <div className="fade-in" style={{ padding: 28, flex: 1, overflowY: 'auto' }}>
       {toast && (
         <div style={{
-          trade: 'fixed', top: 20, right: 20, zIndex: 999,
+          position: 'fixed', top: 20, right: 20, zIndex: 999,
           background: 'var(--bg-3)', border: '1px solid var(--border-bright)',
           padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 12,
           color: 'var(--accent)',

@@ -29,7 +29,7 @@ function PageTracker() {
 export default function App() {
   return (
     <TradingModeProvider>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <PageTracker />
         <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
           <Sidebar />

@@ -80,7 +80,7 @@ export default function Recommendations() {
       {/* Toast */}
       {toast && (
         <div style={{
-          trade: 'fixed', top: 20, right: 20, zIndex: 999,
+          position: 'fixed', top: 20, right: 20, zIndex: 999,
           background: 'var(--bg-3)', border: '1px solid var(--border-bright)',
           padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 12,
           color: 'var(--accent)', animation: 'fade-in 0.2s ease',
@@ -199,9 +199,9 @@ function RecCard({ rec, loading, onApprove, onDismiss }: {
             {Math.round(rec.confidence * 100)}%
           </span>
         </div>
-        <div style={{ height: 4, background: 'var(--bg-3)', trade: 'relative' }}>
+        <div style={{ height: 4, background: 'var(--bg-3)', position: 'relative' }}>
           <div style={{
-            trade: 'absolute', left: 0, top: 0, height: '100%',
+            position: 'absolute', left: 0, top: 0, height: '100%',
             width: `${rec.confidence * 100}%`,
             background: actionColor,
             transition: 'width 0.4s ease',

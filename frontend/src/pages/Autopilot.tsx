@@ -317,9 +317,41 @@ export default function Autopilot() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <h1 style={{ fontFamily: 'var(--f-display)', fontSize: 21, fontWeight: 800, letterSpacing: '-0.03em' }}>Autopilot</h1>
           {isRunning ? <span className="tag tag-live">LIVE · C{status?.cycle_count}</span> : <span className="tag tag-paper">STOPPED</span>}
-          <span style={{ fontSize: 12, color: 'var(--paper-3)' }}>Autonomous paper trading · AI analyses every {Math.round((status?.config?.cycle_interval_seconds ?? 300) / 60)} min</span>
+          {status?.config?.demo_mode && (
+            <span style={{
+              fontFamily: 'var(--f-mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+              color: '#0a0a12', background: '#f59e0b', padding: '3px 8px', borderRadius: 4,
+            }}>SIM MODE</span>
+          )}
+          <span style={{ fontSize: 12, color: 'var(--paper-3)' }}>
+            {status?.config?.demo_mode
+              ? `Simulated broker · ${status?.config?.cycle_interval_seconds ?? 60}s cycles · markets-closed demo`
+              : `Autonomous paper trading · AI analyses every ${Math.round((status?.config?.cycle_interval_seconds ?? 300) / 60)} min`}
+          </span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className="btn-ghost"
+            onClick={async () => {
+              if (isRunning) { alert('Stop the agent before switching mode.'); return }
+              const next = !status?.config?.demo_mode
+              await api.patch('/autopilot/config', { demo_mode: next })
+              await load()
+            }}
+            title={isRunning ? 'Stop the agent before switching mode' : 'Toggle demo / simulated broker'}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
+              border: status?.config?.demo_mode ? '1px solid #f59e0b' : '1px solid var(--line-sub)',
+              color: status?.config?.demo_mode ? '#f59e0b' : 'var(--paper-2)',
+              opacity: isRunning ? 0.55 : 1,
+            }}
+          >
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%',
+              background: status?.config?.demo_mode ? '#f59e0b' : 'var(--paper-3)',
+            }} />
+            SIM
+          </button>
           <button className="btn-ghost" onClick={() => setShowConfig(!showConfig)} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
             <Settings size={13} /> Config
           </button>
@@ -335,7 +367,7 @@ export default function Autopilot() {
         <div className="surface" style={{ margin: '0 20px', marginTop: 12, padding: 16, flexShrink: 0 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14, marginBottom: 12 }}>
             {[
-              { key: 'max_positions', label: 'Max Pos', min: 1, max: 20, step: 1, fmt: (v: number) => String(v) },
+              { key: 'max_trades', label: 'Max Pos', min: 1, max: 20, step: 1, fmt: (v: number) => String(v) },
               { key: 'cycle_interval_seconds', label: 'Cycle', min: 60, max: 3600, step: 60, fmt: (v: number) => `${v}s` },
               { key: 'min_confidence', label: 'Confidence', min: 0.4, max: 0.95, step: 0.05, fmt: (v: number) => `${(v * 100).toFixed(0)}%` },
               { key: 'max_trade_pct', label: 'Max Pos %', min: 0.02, max: 0.3, step: 0.01, fmt: (v: number) => `${(v * 100).toFixed(0)}%` },
@@ -465,19 +497,19 @@ export default function Autopilot() {
           )}
 
           {/* Chart canvas */}
-          <div className="surface" ref={chartWrap} style={{ flex: 1, minHeight: 0, overflow: 'hidden', trade: 'relative' }}>
+          <div className="surface" ref={chartWrap} style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
             <canvas ref={chartRef} style={{ width: '100%', height: '100%', display: 'block' }} />
 
             {/* Chart header overlay */}
-            <div style={{ trade: 'absolute', top: 10, left: 14, fontFamily: 'var(--f-display)', fontSize: 13, fontWeight: 700 }}>
+            <div style={{ position: 'absolute', top: 10, left: 14, fontFamily: 'var(--f-display)', fontSize: 13, fontWeight: 700 }}>
               Live Race
             </div>
-            <div style={{ trade: 'absolute', top: 11, right: 14 }}>
+            <div style={{ position: 'absolute', top: 11, right: 14 }}>
               <span className="sh">{snapshots.current.length} snapshots</span>
             </div>
 
             {/* Legend */}
-            <div style={{ trade: 'absolute', bottom: 8, left: 14, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ position: 'absolute', bottom: 8, left: 14, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {Object.entries(ACTION_COLOR).map(([action, color]) => (
                 <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#0e0f18', border: `1.5px solid ${color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--f-mono)', fontSize: 6.5, color, fontWeight: 700 }}>

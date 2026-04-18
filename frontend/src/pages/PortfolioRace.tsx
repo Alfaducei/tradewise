@@ -382,12 +382,12 @@ export default function PortfolioRace() {
       )}
 
       {/* Chart */}
-      <div className="surface" style={{ flex: 1, minHeight: 380, overflow: 'hidden', trade: 'relative' }} ref={canvasRef}>
+      <div className="surface" style={{ flex: 1, minHeight: 380, overflow: 'hidden', position: 'relative' }} ref={canvasRef}>
         <canvas ref={chartRef} style={{ width: '100%', height: '100%', minHeight: 380, display: 'block' }} />
 
         {/* Legend */}
         <div style={{
-          trade: 'absolute', bottom: 10, left: 16,
+          position: 'absolute', bottom: 10, left: 16,
           display: 'flex', gap: 16, flexWrap: 'wrap',
         }}>
           {Object.entries(ACTION_COLOR).map(([action, color]) => (

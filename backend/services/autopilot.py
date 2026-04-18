@@ -9,18 +9,26 @@ Safety: PAPER TRADING ONLY. Will refuse to run in live mode.
 """
 import asyncio
 import logging
+import random
 from datetime import datetime, timezone
 from sqlalchemy import select
 from models.db import AsyncSessionLocal
 from models.agent import AgentState, AgentDecision, PerformanceSnapshot
 from models.database import Watchlist
-from services.alpaca_client import get_account, get_trades, place_order, is_live_configured
+from services import alpaca_client, sim_broker
 from services.ai_analyst import analyze_asset
+from services.market_data import get_market_data
+from services.scanner import scan_universe
 
 logger = logging.getLogger(__name__)
 
 _agent_task: asyncio.Task | None = None
 _start_equity: float | None = None
+
+
+def _broker(demo: bool):
+    """Return the module that exposes get_account / get_trades / place_order."""
+    return sim_broker if demo else alpaca_client
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -32,13 +40,16 @@ async def start_agent() -> dict:
         state = await _get_or_create_state(db)
         if state.is_running:
             return {"ok": False, "reason": "Agent already running"}
+        demo = bool(getattr(state, "demo_mode", False))
 
-        # Record starting equity for P&L tracking
+        if demo:
+            sim_broker.reset()
+
         try:
-            account = get_account("paper")
+            account = _broker(demo).get_account("paper")
             _start_equity = account["equity"]
         except Exception as e:
-            return {"ok": False, "reason": f"Cannot connect to Alpaca: {e}"}
+            return {"ok": False, "reason": f"Cannot connect to broker: {e}"}
 
         state.is_running = True
         state.started_at = datetime.now(timezone.utc)
@@ -47,8 +58,8 @@ async def start_agent() -> dict:
         await db.commit()
 
     _agent_task = asyncio.create_task(_run_loop())
-    logger.info("Autopilot agent started")
-    return {"ok": True, "message": "Agent started", "start_equity": _start_equity}
+    logger.info(f"Autopilot agent started (demo_mode={demo})")
+    return {"ok": True, "message": "Agent started", "start_equity": _start_equity, "demo_mode": demo}
 
 
 async def stop_agent() -> dict:
@@ -88,10 +99,11 @@ async def get_agent_status() -> dict:
         )
         snapshots = perf_result.scalars().all()
 
-        # Current portfolio
+        demo = bool(getattr(state, "demo_mode", False))
+        broker = _broker(demo)
         try:
-            account = get_account("paper")
-            trades = get_trades("paper")
+            account = broker.get_account("paper")
+            trades = broker.get_trades("paper")
         except Exception:
             account = {}
             trades = []
@@ -115,6 +127,7 @@ async def get_agent_status() -> dict:
                 "take_profit_pct": state.take_profit_pct,
                 "cycle_interval_seconds": state.cycle_interval_seconds,
                 "min_confidence": state.min_confidence,
+                "demo_mode": demo,
             },
             "portfolio": account,
             "trades": trades,
@@ -137,6 +150,11 @@ async def get_agent_status() -> dict:
 async def update_config(config: dict) -> dict:
     async with AsyncSessionLocal() as db:
         state = await _get_or_create_state(db)
+        # If turning demo on, auto-shorten the cycle so the UI looks alive
+        # (unless the caller explicitly set a cycle in the same request).
+        if config.get("demo_mode") is True and "cycle_interval_seconds" not in config:
+            if state.cycle_interval_seconds > 60:
+                state.cycle_interval_seconds = 60
         for key, val in config.items():
             if hasattr(state, key):
                 setattr(state, key, val)
@@ -171,6 +189,7 @@ async def _run_cycle():
         state.cycle_count += 1
         state.last_cycle_at = datetime.now(timezone.utc)
         cycle = state.cycle_count
+        demo = bool(getattr(state, "demo_mode", False))
         config = {
             "max_trades": state.max_trades,
             "max_trade_pct": state.max_trade_pct,
@@ -180,11 +199,12 @@ async def _run_cycle():
         }
         await db.commit()
 
-    logger.info(f"[Cycle {cycle}] Starting...")
+    broker = _broker(demo)
+    logger.info(f"[Cycle {cycle}] Starting{' (SIM)' if demo else ''}...")
 
     try:
-        account = get_account("paper")
-        trades = get_trades("paper")
+        account = broker.get_account("paper")
+        trades = broker.get_trades("paper")
         cash = account["cash"]
         equity = account["equity"]
     except Exception as e:
@@ -212,13 +232,13 @@ async def _run_cycle():
                 db_session=None, cycle=cycle, symbol=symbol,
                 decision=decision_type, quantity=pos["qty"],
                 price=pos["current_price"], confidence=1.0,
-                reason=reason, side="SELL",
+                reason=reason, side="SELL", demo=demo,
             )
 
     # ── Step 2: Refresh trades after any stops triggered ───────────────────
     try:
-        trades = get_trades("paper")
-        account = get_account("paper")
+        trades = broker.get_trades("paper")
+        account = broker.get_account("paper")
         cash = account["cash"]
     except Exception:
         pass
@@ -229,13 +249,21 @@ async def _run_cycle():
         await _snapshot(cycle, account, trades, equity)
         return
 
-    # ── Step 3: Analyse watchlist symbols ─────────────────────────────────────
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(Watchlist))
-        watchlist = [w.symbol for w in result.scalars().all()]
-
+    # ── Step 3: Scan the market for top candidates ────────────────────────────
+    # Replaces the old "watchlist only" logic: screen ~200 stocks + crypto with
+    # cheap technicals, pass the top N to the deeper analyzer (AI or sim).
     held_symbols = {p["symbol"] for p in trades}
-    candidates = [s for s in watchlist if s not in held_symbols]
+    shortlist_size = max(20, config["max_trades"] * 4)
+    try:
+        scan = scan_universe(top_n=shortlist_size)
+    except Exception as e:
+        logger.warning(f"[Cycle {cycle}] Scanner failed, falling back to watchlist: {e}")
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(Watchlist))
+            scan = [type("R", (), {"symbol": w.symbol, "reason": "watchlist fallback"})() for w in result.scalars().all()]
+
+    scan_hints = {r.symbol: r.reason for r in scan}
+    candidates = [r.symbol for r in scan if r.symbol not in held_symbols]
 
     max_trade_value = equity * config["max_trade_pct"]
 
@@ -244,7 +272,10 @@ async def _run_cycle():
             break
 
         try:
-            analysis = analyze_asset(symbol, cash, None)
+            if demo:
+                analysis = _sim_analysis(symbol, hint=scan_hints.get(symbol))
+            else:
+                analysis = analyze_asset(symbol, cash, None)
         except Exception as e:
             logger.warning(f"[Cycle {cycle}] Analysis failed for {symbol}: {e}")
             await _record_decision(cycle, symbol, "SKIP", f"Analysis error: {e}", None, None, 0.0, False)
@@ -274,17 +305,17 @@ async def _run_cycle():
         await _execute_decision(
             db_session=None, cycle=cycle, symbol=symbol,
             decision="BUY", quantity=qty, price=price,
-            confidence=confidence, reason=reasoning, side="BUY",
+            confidence=confidence, reason=reasoning, side="BUY", demo=demo,
         )
 
         # Update cash estimate for next iteration
         cash -= qty * price
-        trades = get_trades("paper")
+        trades = broker.get_trades("paper")
 
     # ── Step 4: Snapshot performance ──────────────────────────────────────────
     try:
-        final_account = get_account("paper")
-        final_trades = get_trades("paper")
+        final_account = broker.get_account("paper")
+        final_trades = broker.get_trades("paper")
         await _snapshot(cycle, final_account, final_trades, equity)
     except Exception as e:
         logger.warning(f"[Cycle {cycle}] Snapshot failed: {e}")
@@ -292,13 +323,42 @@ async def _run_cycle():
     logger.info(f"[Cycle {cycle}] Complete. Portfolio: ${account.get('equity', 0):,.2f}")
 
 
-async def _execute_decision(*, db_session, cycle, symbol, decision, quantity, price, confidence, reason, side):
+def _sim_analysis(symbol: str, hint: str | None = None) -> dict:
+    """Cheap synthetic decision generator used in demo mode (skips AI API)."""
+    try:
+        price = float(get_market_data(symbol)["current_price"])
+    except Exception:
+        price = 100.0
+    # ~60% BUY, ~40% HOLD, confidence 0.55–0.92
+    action = random.choices(["BUY", "HOLD"], weights=[6, 4])[0]
+    confidence = round(random.uniform(0.55, 0.92), 2)
+    if hint:
+        reasoning = f"Sim engine · scanner flagged {symbol} ({hint}) at ${price:.2f}."
+    else:
+        reasoning = random.choice([
+            f"Sim engine: momentum favorable for {symbol} at ${price:.2f}.",
+            f"Sim engine: RSI + MACD crossover on {symbol}.",
+            f"Sim engine: volume spike + trend continuation on {symbol}.",
+            f"Sim engine: mean-reversion setup on {symbol}.",
+        ])
+    # Omit "quantity" so the sizer in _run_cycle uses affordable_qty
+    return {
+        "symbol": symbol,
+        "action": action,
+        "confidence": confidence,
+        "reasoning": reasoning,
+        "price_at_signal": price,
+        "risk_level": "medium",
+    }
+
+
+async def _execute_decision(*, db_session, cycle, symbol, decision, quantity, price, confidence, reason, side, demo: bool = False):
     order_id = None
     executed = False
     error = None
 
     try:
-        order = place_order(symbol, quantity, side, "paper")
+        order = _broker(demo).place_order(symbol, quantity, side, "paper")
         order_id = order.get("order_id")
         executed = True
         logger.info(f"[Cycle {cycle}] {decision} {symbol} x{quantity} @ ${price:.2f} — {reason[:60]}")
@@ -336,7 +396,7 @@ async def _snapshot(cycle, account, trades, start_equity_override=None):
             equity=equity,
             pnl_since_start=round(pnl, 2),
             pnl_pct_since_start=round(pnl_pct, 4),
-            open_positions=len(trades),
+            open_trades=len(trades),
         )
         db.add(snap)
         await db.commit()
