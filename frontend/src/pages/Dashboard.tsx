@@ -114,7 +114,7 @@ export default function Dashboard() {
                   <th
                     key={h}
                     className="px-5 py-2 text-left font-mono font-bold text-muted-foreground uppercase"
-                    style={{ fontSize: 10, letterSpacing: '0.08em' }}
+                    style={{ fontSize: 11, letterSpacing: '0.08em' }}
                   >
                     {h}
                   </th>

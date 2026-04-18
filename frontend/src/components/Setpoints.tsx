@@ -162,7 +162,7 @@ export default function Setpoints({ config, onSave }: SetpointsProps) {
                 >
                   {/* Header */}
                   <div className="flex justify-between items-start mb-[2px]">
-                    <span className="section-label" style={{ fontSize: 9 }}>{param.label}</span>
+                    <span className="section-label">{param.label}</span>
                     <span
                       className="leading-none transition-transform duration-150"
                       style={{
@@ -188,8 +188,8 @@ export default function Setpoints({ config, onSave }: SetpointsProps) {
                     {param.fmt(val)}
                     {isDirty && !isOpen && (
                       <span
-                        className="font-mono text-amber align-middle"
-                        style={{ fontSize: 9, marginLeft: 6 }}
+                        className="font-mono font-medium text-amber align-middle"
+                        style={{ fontSize: 11, marginLeft: 6 }}
                       >
                         unsaved
                       </span>
@@ -197,7 +197,7 @@ export default function Setpoints({ config, onSave }: SetpointsProps) {
                   </div>
                   <div
                     className="text-muted-foreground leading-[1.4]"
-                    style={{ fontSize: 10.5 }}
+                    style={{ fontSize: 11 }}
                   >
                     {param.hint}
                   </div>
@@ -270,7 +270,7 @@ export default function Setpoints({ config, onSave }: SetpointsProps) {
                           isActive ? "" : "bg-accent text-muted-foreground"
                         )}
                         style={{
-                          fontSize: 10,
+                          fontSize: 11,
                           background: isActive ? `${param.color}18` : undefined,
                           border: `1px solid ${isActive ? param.color : 'var(--line-sub)'}`,
                           color: isActive ? param.color : undefined,

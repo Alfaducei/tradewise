@@ -31,7 +31,7 @@ export default function Sidebar() {
         </div>
         <div
           className="font-mono text-muted-foreground uppercase"
-          style={{ fontSize: 9, letterSpacing: '0.12em' }}
+          style={{ fontSize: 11, letterSpacing: '0.12em' }}
         >
           AI · FREE · OPEN SOURCE
         </div>
@@ -41,7 +41,7 @@ export default function Sidebar() {
       <div className="px-3 py-[10px] border-b border-white/5">
         <div
           className="font-mono text-muted-foreground uppercase mb-[7px]"
-          style={{ fontSize: 9, letterSpacing: '0.1em' }}
+          style={{ fontSize: 11, letterSpacing: '0.1em' }}
         >
           Mode
         </div>
@@ -62,7 +62,7 @@ export default function Sidebar() {
                       : "bg-primary/10 border-primary/35 text-primary"
                     : "bg-popover border-white/5 text-muted-foreground"
                 )}
-                style={{ fontSize: 9.5, letterSpacing: '0.07em' }}
+                style={{ fontSize: 11, letterSpacing: '0.07em' }}
               >
                 {isLiveBtn ? '● LIVE' : '○ PAPER'}
               </button>
@@ -72,7 +72,7 @@ export default function Sidebar() {
         {isLive && (
           <div
             className="mt-[7px] px-2 py-[5px] bg-down/10 border border-down/25 rounded-sm font-mono text-down leading-[1.5]"
-            style={{ fontSize: 9 }}
+            style={{ fontSize: 11 }}
           >
             ⚠ REAL MONEY ACTIVE
           </div>
@@ -122,7 +122,7 @@ export default function Sidebar() {
         </a>
         <p
           className="text-center text-muted-foreground mt-[6px] leading-[1.4]"
-          style={{ fontSize: 9.5 }}
+          style={{ fontSize: 11 }}
         >
           Free forever. Only donate if you profit.
         </p>

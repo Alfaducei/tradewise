@@ -219,7 +219,7 @@ export function AIBrain({
           />
           <span
             className="font-mono text-muted-foreground uppercase"
-            style={{ fontSize: 10, letterSpacing: '0.08em' }}
+            style={{ fontSize: 11, letterSpacing: '0.08em' }}
           >
             AI Brain
           </span>
@@ -234,7 +234,7 @@ export function AIBrain({
         </div>
         <div className="flex items-center gap-2">
           {cycleCount > 0 && (
-            <span className="font-mono text-muted-foreground" style={{ fontSize: 9 }}>
+            <span className="font-mono font-medium text-muted-foreground" style={{ fontSize: 11 }}>
               C{cycleCount}
             </span>
           )}
@@ -243,7 +243,7 @@ export function AIBrain({
               "font-mono font-bold uppercase",
               isRunning ? "text-primary" : "text-muted-foreground"
             )}
-            style={{ fontSize: 9, letterSpacing: '0.1em' }}
+            style={{ fontSize: 11, letterSpacing: '0.1em' }}
           >
             {PHASE_LABELS[phase]}
           </span>
@@ -262,7 +262,7 @@ export function AIBrain({
           {/* Reasoning stream */}
           <div className="flex-1 bg-background rounded-sm px-3 py-[10px] min-h-[60px] max-h-[90px] overflow-y-auto">
             {!isRunning && !streamText ? (
-              <span className="font-mono text-muted-foreground" style={{ fontSize: 10 }}>
+              <span className="font-mono font-medium text-muted-foreground" style={{ fontSize: 11 }}>
                 Agent not running. Start Autopilot to see AI thinking.
               </span>
             ) : streamText ? (
@@ -271,7 +271,7 @@ export function AIBrain({
                 {(phase === 'reasoning' || phase === 'scanning') && <span className="cursor" />}
               </span>
             ) : (
-              <span className="font-mono text-muted-foreground" style={{ fontSize: 10 }}>
+              <span className="font-mono font-medium text-muted-foreground" style={{ fontSize: 11 }}>
                 Waiting for next analysis cycle...
               </span>
             )}
@@ -295,14 +295,14 @@ export function AIBrain({
                     {latestDecision.symbol}
                   </span>
                   {latestDecision.quantity && latestDecision.price && (
-                    <span className="font-mono text-muted-foreground" style={{ fontSize: 10 }}>
+                    <span className="font-mono font-medium text-muted-foreground" style={{ fontSize: 11 }}>
                       ×{latestDecision.quantity} @ ${latestDecision.price.toFixed(2)}
                     </span>
                   )}
                 </div>
                 <span
                   className="font-mono font-bold"
-                  style={{ fontSize: 10, color: actionColor }}
+                  style={{ fontSize: 11, color: actionColor }}
                 >
                   {Math.round((latestDecision.confidence ?? 0) * 100)}%
                 </span>
