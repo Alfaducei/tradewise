@@ -1,0 +1,159 @@
+{
+  "_comment": "Import this file into n8n at Settings > Import Workflow. Set your credentials in n8n before activating.",
+  "name": "TradeWise Automation Hub",
+  "nodes": [
+    {
+      "name": "Webhook - New Donation",
+      "type": "n8n-nodes-base.webhook",
+      "trade": [240, 200],
+      "parameters": {
+        "path": "tradewise-donation",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "name": "Notify Slack - Donation",
+      "type": "n8n-nodes-base.slack",
+      "trade": [480, 200],
+      "parameters": {
+        "channel": "#tradewise",
+        "text": "💰 New donation: ${{ $json.amount }} from {{ $json.message || 'anonymous' }}. Total so far: ${{ $json.running_total }}"
+      }
+    },
+    {
+      "name": "Send Thank You Email",
+      "type": "n8n-nodes-base.gmail",
+      "trade": [720, 200],
+      "parameters": {
+        "to": "={{ $json.email }}",
+        "subject": "Thank you for supporting TradeWise ❤️",
+        "message": "Hi there,\n\nThank you so much for your ${{ $json.amount }} donation to TradeWise!\n\nYour support keeps TradeWise free for everyone. We're committed to never charging for access — this app exists to help people trade smarter, not to extract money from them.\n\nIf you have any feedback or feature requests, just reply to this email.\n\nHappy trading,\nThe TradeWise Team\n\n---\n⚠️ Reminder: TradeWise AI signals are not financial advice. Always trade responsibly."
+      }
+    },
+    {
+      "name": "Webhook - New User Signup",
+      "type": "n8n-nodes-base.webhook",
+      "trade": [240, 400],
+      "parameters": {
+        "path": "tradewise-signup",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "name": "Add to Airtable - Users",
+      "type": "n8n-nodes-base.airtable",
+      "trade": [480, 400],
+      "parameters": {
+        "operation": "create",
+        "baseId": "YOUR_AIRTABLE_BASE_ID",
+        "tableId": "Users",
+        "fields": {
+          "Email": "={{ $json.email }}",
+          "Signed Up": "={{ $now }}",
+          "Source": "={{ $json.referrer }}",
+          "Mode": "paper"
+        }
+      }
+    },
+    {
+      "name": "Schedule - Weekly Congress Digest",
+      "type": "n8n-nodes-base.cron",
+      "trade": [240, 600],
+      "parameters": {
+        "triggerTimes": {
+          "item": [{ "mode": "everyWeek", "hour": 9, "minute": 0, "weekday": 1 }]
+        }
+      }
+    },
+    {
+      "name": "GET Congress Top Tickers",
+      "type": "n8n-nodes-base.httpRequest",
+      "trade": [480, 600],
+      "parameters": {
+        "method": "GET",
+        "url": "{{ $env.TRADEWISE_API_URL }}/congress/top-tickers"
+      }
+    },
+    {
+      "name": "Post to Reddit - Weekly",
+      "type": "n8n-nodes-base.httpRequest",
+      "trade": [720, 600],
+      "parameters": {
+        "method": "POST",
+        "url": "{{ $env.TRADEWISE_API_URL }}/marketing/post-congress-digest",
+        "sendBody": true,
+        "bodyParameters": {
+          "tickers": "={{ $json }}"
+        }
+      }
+    },
+    {
+      "name": "Webhook - User Feedback",
+      "type": "n8n-nodes-base.webhook",
+      "trade": [240, 800],
+      "parameters": {
+        "path": "tradewise-feedback",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "name": "Save to Notion - Feedback",
+      "type": "n8n-nodes-base.notion",
+      "trade": [480, 800],
+      "parameters": {
+        "operation": "create",
+        "databaseId": "YOUR_NOTION_DB_ID",
+        "propertiesUi": {
+          "propertyValues": [
+            { "key": "Feedback", "type": "title", "titleValue": "={{ $json.message }}" },
+            { "key": "Rating", "type": "number", "numberValue": "={{ $json.rating }}" },
+            { "key": "Date", "type": "date", "dateValue": "={{ $now }}" },
+            { "key": "Source", "type": "select", "selectValue": "={{ $json.source }}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Schedule - Analytics Report",
+      "type": "n8n-nodes-base.cron",
+      "trade": [240, 1000],
+      "parameters": {
+        "triggerTimes": {
+          "item": [{ "mode": "everyDay", "hour": 8, "minute": 0 }]
+        }
+      }
+    },
+    {
+      "name": "GET Daily Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "trade": [480, 1000],
+      "parameters": {
+        "method": "GET",
+        "url": "{{ $env.TRADEWISE_API_URL }}/analytics/dashboard"
+      }
+    },
+    {
+      "name": "Email Daily Stats",
+      "type": "n8n-nodes-base.gmail",
+      "trade": [720, 1000],
+      "parameters": {
+        "to": "YOUR_EMAIL@gmail.com",
+        "subject": "TradeWise Daily Stats — {{ $today }}",
+        "message": "📊 TradeWise Daily Report\n\nVisitors today: {{ $json.visitors.unique_today }}\nThis week: {{ $json.visitors.unique_this_week }}\nThis month: {{ $json.visitors.unique_this_month }}\n\n💰 Total donations: ${{ $json.donations.total_usd }}\nDonation count: {{ $json.donations.donation_count }}\n\n📈 Trades executed: {{ $json.trading.total_trades_executed }}\nAI approval rate: {{ $json.trading.approval_rate }}%"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - New Donation": { "main": [[{ "node": "Notify Slack - Donation", "type": "main", "index": 0 }]] },
+    "Notify Slack - Donation": { "main": [[{ "node": "Send Thank You Email", "type": "main", "index": 0 }]] },
+    "Webhook - New User Signup": { "main": [[{ "node": "Add to Airtable - Users", "type": "main", "index": 0 }]] },
+    "Schedule - Weekly Congress Digest": { "main": [[{ "node": "GET Congress Top Tickers", "type": "main", "index": 0 }]] },
+    "GET Congress Top Tickers": { "main": [[{ "node": "Post to Reddit - Weekly", "type": "main", "index": 0 }]] },
+    "Webhook - User Feedback": { "main": [[{ "node": "Save to Notion - Feedback", "type": "main", "index": 0 }]] },
+    "Schedule - Analytics Report": { "main": [[{ "node": "GET Daily Stats", "type": "main", "index": 0 }]] },
+    "GET Daily Stats": { "main": [[{ "node": "Email Daily Stats", "type": "main", "index": 0 }]] }
+  }
+}

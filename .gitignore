@@ -1,0 +1,40 @@
+# ── Secrets — NEVER commit these ──────────────────────────────────
+.env
+.env.*
+!.env.example
+deploy-now.sh
+*.key
+*.pem
+secrets/
+
+# ── Python ────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+*.db
+*.db-shm
+*.db-wal
+data/
+
+# ── Node ──────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+.next/
+.nuxt/
+
+# ── OS ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+SECRETS-KEEP-SAFE.txt
+.vs/

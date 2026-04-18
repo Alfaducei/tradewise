@@ -1,0 +1,73 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ALPACA_PAPER_API_KEY=${ALPACA_PAPER_API_KEY}
+      - ALPACA_PAPER_SECRET_KEY=${ALPACA_PAPER_SECRET_KEY}
+      - ALPACA_LIVE_API_KEY=${ALPACA_LIVE_API_KEY:-}
+      - ALPACA_LIVE_SECRET_KEY=${ALPACA_LIVE_SECRET_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID:-}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET:-}
+      - REDDIT_USERNAME=${REDDIT_USERNAME:-}
+      - REDDIT_PASSWORD=${REDDIT_PASSWORD:-}
+      - TWITTER_API_KEY=${TWITTER_API_KEY:-}
+      - TWITTER_API_SECRET=${TWITTER_API_SECRET:-}
+      - TWITTER_ACCESS_TOKEN=${TWITTER_ACCESS_TOKEN:-}
+      - TWITTER_ACCESS_SECRET=${TWITTER_ACCESS_SECRET:-}
+      - APP_URL=${APP_URL:-http://localhost:5173}
+      - ADMIN_KEY=${ADMIN_KEY:-changeme}
+      - DATABASE_URL=sqlite+aiosqlite:///./data/tradewise.db
+      - ANALYSIS_INTERVAL_MINUTES=${ANALYSIS_INTERVAL_MINUTES:-30}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      - VITE_API_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Optional: n8n automation
+  n8n:
+    image: n8nio/n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-changeme}
+      - WEBHOOK_URL=http://localhost:5678
+      - N8N_HOST=0.0.0.0
+      - TRADEWISE_API_URL=http://backend:8000
+    volumes:
+      - ./n8n/data:/home/node/.n8n
+      - ./n8n:/home/node/workflows
+    restart: unless-stopped
+    profiles:
+      - n8n
+
+volumes:
+  data:
