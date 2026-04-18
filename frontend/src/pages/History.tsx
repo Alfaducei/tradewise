@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { getTrades } from '../api/client'
 import { Brain } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 interface Trade {
   id: number
@@ -32,82 +34,91 @@ export default function History() {
   const aiAssisted = trades.filter(t => t.recommendation_id !== null).length
 
   return (
-    <div className="fade-in" style={{ padding: 28, flex: 1, overflowY: 'auto' }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600 }}>Trade History</h1>
-        <p style={{ color: 'var(--text-2)', fontSize: 13, marginTop: 4 }}>All executed paper trades</p>
+    <div className="fade-in p-7 flex-1 overflow-y-auto">
+      <div className="mb-6">
+        <h1 className="text-[22px] font-semibold">Trade History</h1>
+        <p className="text-muted-foreground text-[13px] mt-1">All executed paper trades</p>
       </div>
 
       {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+      <div className="grid grid-cols-3 gap-3 mb-5">
         {[
-          { label: 'Total Buys', value: fmtUSD(totalBuys), color: 'var(--accent)' },
-          { label: 'Total Sells', value: fmtUSD(totalSells), color: 'var(--red)' },
-          { label: 'AI-Assisted', value: `${aiAssisted} / ${trades.length}`, color: 'var(--text-0)' },
+          { label: 'Total Buys', value: fmtUSD(totalBuys), color: 'var(--color-primary)' },
+          { label: 'Total Sells', value: fmtUSD(totalSells), color: 'var(--color-down)' },
+          { label: 'AI-Assisted', value: `${aiAssisted} / ${trades.length}`, color: 'var(--color-foreground)' },
         ].map(s => (
-          <div key={s.label} style={{ background: 'var(--bg-1)', border: '1px solid var(--border)', padding: '14px 18px' }}>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>{s.label}</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 700, color: s.color }}>{s.value}</div>
+          <div key={s.label} className="bg-card border border-border px-[18px] py-[14px] rounded-lg">
+            <div className="section-label mb-[6px]">{s.label}</div>
+            <div
+              className="font-mono font-bold mono-number text-[18px]"
+              style={{ color: s.color }}
+            >
+              {s.value}
+            </div>
           </div>
         ))}
       </div>
 
       {/* Filter */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div className="flex gap-2 mb-4">
         {(['all', 'BUY', 'SELL'] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{
-            padding: '6px 16px', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
-            letterSpacing: '0.06em', textTransform: 'uppercase',
-            background: filter === f ? 'var(--bg-3)' : 'transparent',
-            border: `1px solid ${filter === f ? 'var(--border-bright)' : 'var(--border)'}`,
-            color: filter === f ? 'var(--accent)' : 'var(--text-2)',
-          }}>{f}</button>
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={cn(
+              "px-4 py-[6px] font-mono font-bold uppercase rounded-sm border",
+              filter === f
+                ? "bg-accent border-primary/40 text-primary"
+                : "bg-transparent border-border text-muted-foreground"
+            )}
+            style={{ fontSize: 11, letterSpacing: '0.06em' }}
+          >
+            {f}
+          </button>
         ))}
       </div>
 
       {/* Table */}
-      <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border)' }}>
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>LOADING...</div>
+          <div className="p-10 text-center text-muted-foreground font-mono text-xs">LOADING...</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>NO TRADES YET</div>
+          <div className="p-10 text-center text-muted-foreground font-mono text-xs">NO TRADES YET</div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              <tr className="border-b border-border">
                 {['Symbol', 'Action', 'Qty', 'Price', 'Total Value', 'Source', 'Time'].map(h => (
-                  <th key={h} style={{
-                    padding: '10px 20px', textAlign: 'left',
-                    fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
-                    color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase',
-                  }}>{h}</th>
+                  <th
+                    key={h}
+                    className="px-5 py-[10px] text-left font-mono font-bold text-muted-foreground uppercase"
+                    style={{ fontSize: 11, letterSpacing: '0.08em' }}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map(t => (
-                <tr key={t.id}
-                  style={{ borderBottom: '1px solid var(--border)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-2)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <td style={{ padding: '12px 20px', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13 }}>{t.symbol}</td>
-                  <td style={{ padding: '12px 20px' }}>
-                    <span className={`badge badge-${t.action.toLowerCase()}`}>{t.action}</span>
+                <tr key={t.id} className="border-b border-border hover:bg-popover transition-colors">
+                  <td className="px-5 py-3 font-mono font-bold text-[13px]">{t.symbol}</td>
+                  <td className="px-5 py-3">
+                    <Badge variant={t.action === 'BUY' ? 'buy' : 'sell'}>{t.action}</Badge>
                   </td>
-                  <td style={{ padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-1)' }}>{t.quantity}</td>
-                  <td style={{ padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-1)' }}>{fmtUSD(t.price)}</td>
-                  <td style={{ padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600 }}>{fmtUSD(t.total_value)}</td>
-                  <td style={{ padding: '12px 20px' }}>
+                  <td className="px-5 py-3 font-mono text-[13px] text-foreground">{t.quantity}</td>
+                  <td className="px-5 py-3 font-mono text-[13px] text-foreground">{fmtUSD(t.price)}</td>
+                  <td className="px-5 py-3 font-mono text-[13px] font-semibold">{fmtUSD(t.total_value)}</td>
+                  <td className="px-5 py-3">
                     {t.recommendation_id ? (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--accent)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+                      <span className="flex items-center gap-1 text-primary font-mono text-[11px]">
                         <Brain size={11} /> AI
                       </span>
                     ) : (
-                      <span style={{ color: 'var(--text-3)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>Manual</span>
+                      <span className="text-muted-foreground font-mono text-[11px]">Manual</span>
                     )}
                   </td>
-                  <td style={{ padding: '12px 20px', fontSize: 12, color: 'var(--text-2)' }}>
+                  <td className="px-5 py-3 text-xs text-muted-foreground">
                     {new Date(t.executed_at).toLocaleString()}
                   </td>
                 </tr>
