@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { getWatchlist, addToWatchlist, removeFromWatchlist, analyzeSymbol } from '../api/client'
 import { Plus, Trash2, Zap } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface WatchItem {
   id: number
@@ -59,86 +61,56 @@ export default function Watchlist() {
   }
 
   return (
-    <div className="fade-in" style={{ padding: 28, flex: 1, overflowY: 'auto' }}>
+    <div className="fade-in p-7 flex-1 overflow-y-auto">
       {toast && (
-        <div style={{
-          position: 'fixed', top: 20, right: 20, zIndex: 999,
-          background: 'var(--bg-3)', border: '1px solid var(--border-bright)',
-          padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 12,
-          color: 'var(--accent)',
-        }}>{toast}</div>
+        <div className="fixed top-5 right-5 z-[999] bg-accent border border-primary/40 rounded-lg px-5 py-3 font-mono text-xs text-primary">
+          {toast}
+        </div>
       )}
 
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600 }}>Watchlist</h1>
-        <p style={{ color: 'var(--text-2)', fontSize: 13, marginTop: 4 }}>
+      <div className="mb-6">
+        <h1 className="text-[22px] font-semibold">Watchlist</h1>
+        <p className="text-muted-foreground text-[13px] mt-1">
           Assets the AI monitors automatically. Analyze any on demand.
         </p>
       </div>
 
       {/* Add form */}
-      <div style={{
-        display: 'flex', gap: 8, marginBottom: 24,
-        background: 'var(--bg-1)', border: '1px solid var(--border)', padding: 16, alignItems: 'center',
-      }}>
+      <div className="flex gap-2 mb-6 bg-card border border-border p-4 items-center rounded-lg">
         <input
           value={symbol}
           onChange={e => setSymbol(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleAdd()}
           placeholder="Symbol (AAPL, MSFT, BTC/USD...)"
-          style={{
-            flex: 1, background: 'var(--bg-0)', border: '1px solid var(--border)',
-            padding: '8px 12px', color: 'var(--text-0)', fontSize: 13,
-            fontFamily: 'var(--font-mono)',
-          }}
+          className="flex-1 bg-background border border-border px-3 py-2 text-foreground text-[13px] font-mono rounded-sm"
         />
         <select
           value={assetClass}
           onChange={e => setAssetClass(e.target.value)}
-          style={{
-            background: 'var(--bg-0)', border: '1px solid var(--border)',
-            padding: '8px 12px', color: 'var(--text-1)', fontSize: 13,
-            fontFamily: 'var(--font-mono)',
-          }}
+          className="bg-background border border-border px-3 py-2 text-foreground text-[13px] font-mono rounded-sm"
         >
           <option value="stock">Stock</option>
           <option value="crypto">Crypto</option>
         </select>
-        <button
-          onClick={handleAdd}
-          disabled={adding || !symbol.trim()}
-          style={{
-            padding: '8px 16px', background: 'var(--accent)', color: 'var(--bg-0)',
-            fontWeight: 700, fontFamily: 'var(--font-mono)', fontSize: 12,
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}
-        >
+        <Button onClick={handleAdd} disabled={adding || !symbol.trim()} className="font-mono uppercase gap-[6px]">
           <Plus size={14} /> ADD
-        </button>
+        </Button>
       </div>
 
       {/* Watchlist grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-[10px]">
         {items.map(item => (
-          <div key={item.id} style={{
-            background: 'var(--bg-1)', border: '1px solid var(--border)',
-            padding: '16px', display: 'flex', flexDirection: 'column', gap: 12,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div key={item.id} className="bg-card border border-border p-4 flex flex-col gap-3 rounded-lg">
+            <div className="flex justify-between items-start">
               <div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 15 }}>{item.symbol}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div className="font-mono font-bold text-[15px]">{item.symbol}</div>
+                <div className="text-muted-foreground mt-[2px] uppercase" style={{ fontSize: 11, letterSpacing: '0.04em' }}>
                   {item.asset_class}
                 </div>
               </div>
               <button
                 onClick={() => handleRemove(item.symbol)}
-                style={{
-                  background: 'transparent', color: 'var(--text-3)', padding: 4,
-                  display: 'flex', alignItems: 'center',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}
+                className="bg-transparent text-muted-foreground p-1 hover:text-down flex items-center transition-colors"
               >
                 <Trash2 size={13} />
               </button>
@@ -146,20 +118,12 @@ export default function Watchlist() {
             <button
               onClick={() => handleAnalyze(item.symbol)}
               disabled={analyzing === item.symbol}
-              style={{
-                width: '100%', padding: '7px 0', background: 'transparent',
-                border: '1px solid var(--border)', color: 'var(--text-1)',
-                fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.06em',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget.style.borderColor = 'var(--accent)')
-                ;(e.currentTarget.style.color = 'var(--accent)')
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget.style.borderColor = 'var(--border)')
-                ;(e.currentTarget.style.color = 'var(--text-1)')
-              }}
+              className={cn(
+                "w-full py-[7px] bg-transparent border border-border text-foreground font-mono uppercase rounded-sm",
+                "flex items-center justify-center gap-[6px] transition-colors",
+                "hover:border-primary hover:text-primary"
+              )}
+              style={{ fontSize: 11, letterSpacing: '0.06em' }}
             >
               <Zap size={11} />
               {analyzing === item.symbol ? 'ANALYZING...' : 'ANALYZE NOW'}
