@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { getRecommendations, analyzeSymbol, approveRecommendation, dismissRecommendation } from '../api/client'
-import { Brain, Check, X, RefreshCw, AlertTriangle } from 'lucide-react'
+import { Brain, Check, X, AlertTriangle } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface Rec {
   id: number
@@ -76,70 +79,47 @@ export default function Recommendations() {
   }
 
   return (
-    <div className="fade-in" style={{ padding: 28, flex: 1, overflowY: 'auto' }}>
-      {/* Toast */}
+    <div className="fade-in p-7 flex-1 overflow-y-auto">
       {toast && (
-        <div style={{
-          position: 'fixed', top: 20, right: 20, zIndex: 999,
-          background: 'var(--bg-3)', border: '1px solid var(--border-bright)',
-          padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 12,
-          color: 'var(--accent)', animation: 'fade-in 0.2s ease',
-        }}>{toast}</div>
+        <div className="fixed top-5 right-5 z-[999] bg-accent border border-primary/40 rounded-lg px-5 py-3 font-mono text-xs text-primary animate-fade-up">
+          {toast}
+        </div>
       )}
 
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600 }}>AI Signals</h1>
-        <p style={{ color: 'var(--text-2)', fontSize: 13, marginTop: 4 }}>
+      <div className="mb-6">
+        <h1 className="text-[22px] font-semibold">AI Signals</h1>
+        <p className="text-muted-foreground text-[13px] mt-1">
           AI analyzes your watchlist every 30 min. You decide what to execute.
         </p>
       </div>
 
       {/* Manual analyze */}
-      <div style={{
-        display: 'flex', gap: 8, marginBottom: 24,
-        background: 'var(--bg-1)', border: '1px solid var(--border)', padding: 16,
-      }}>
-        <Brain size={16} style={{ color: 'var(--accent)', marginTop: 9, flexShrink: 0 }} />
+      <div className="flex gap-2 mb-6 bg-card border border-border p-4 rounded-lg">
+        <Brain size={16} className="text-primary mt-[9px] flex-shrink-0" />
         <input
           value={symbol}
           onChange={e => setSymbol(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleAnalyze()}
           placeholder="Enter symbol (AAPL, BTC/USD...)"
-          style={{
-            flex: 1, background: 'var(--bg-0)', border: '1px solid var(--border)',
-            padding: '8px 12px', color: 'var(--text-0)', fontSize: 13,
-            fontFamily: 'var(--font-mono)',
-          }}
+          className="flex-1 bg-background border border-border px-3 py-2 text-foreground text-[13px] font-mono rounded-sm"
         />
-        <button
-          onClick={handleAnalyze}
-          disabled={analyzing || !symbol.trim()}
-          style={{
-            padding: '8px 20px', background: 'var(--accent)', color: 'var(--bg-0)',
-            fontWeight: 700, fontFamily: 'var(--font-mono)', fontSize: 12,
-            letterSpacing: '0.06em',
-          }}
-        >
+        <Button onClick={handleAnalyze} disabled={analyzing || !symbol.trim()} className="font-mono uppercase gap-1">
           {analyzing ? 'ANALYZING...' : 'ANALYZE'}
-        </button>
+        </Button>
       </div>
 
       {/* Pending signals */}
       {loading ? (
-        <div style={{ color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>LOADING SIGNALS...</div>
+        <div className="text-muted-foreground font-mono text-xs">LOADING SIGNALS...</div>
       ) : recs.length === 0 ? (
-        <div style={{
-          textAlign: 'center', padding: '60px 20px',
-          border: '1px solid var(--border)', background: 'var(--bg-1)',
-          color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12,
-        }}>
+        <div className="text-center px-5 py-14 border border-border bg-card text-muted-foreground font-mono text-xs rounded-lg">
           NO PENDING SIGNALS<br />
-          <span style={{ color: 'var(--text-3)', fontSize: 11, marginTop: 8, display: 'block' }}>
+          <span className="text-muted-foreground mt-2 block" style={{ fontSize: 11 }}>
             AI auto-analyzes watchlist every 30 min, or analyze a symbol manually above
           </span>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="flex flex-col gap-3">
           {recs.map(rec => (
             <RecCard
               key={rec.id}
@@ -160,101 +140,79 @@ function RecCard({ rec, loading, onApprove, onDismiss }: {
   onApprove: () => void, onDismiss: () => void
 }) {
   const fmtUSD = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
-  const actionColor = rec.action === 'BUY' ? 'var(--accent)' : rec.action === 'SELL' ? 'var(--red)' : 'var(--yellow)'
+  const isBuy = rec.action === 'BUY'
+  const actionColor = isBuy ? 'var(--color-primary)' : rec.action === 'SELL' ? 'var(--color-down)' : 'var(--color-amber)'
   const totalValue = rec.quantity * rec.price_at_signal
+  const riskVariant = rec.risk_level === 'high' ? 'sell' : rec.risk_level === 'medium' ? 'warning' : 'buy'
 
   return (
-    <div style={{
-      background: 'var(--bg-1)',
-      border: `1px solid ${rec.action === 'BUY' ? 'rgba(0,230,118,0.2)' : 'rgba(255,71,87,0.2)'}`,
-      padding: 20,
-    }}>
+    <div
+      className="bg-card p-5 rounded-lg"
+      style={{ border: `1px solid ${isBuy ? 'rgba(34,197,94,0.2)' : 'rgba(244,63,94,0.2)'}` }}
+    >
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 700 }}>{rec.symbol}</span>
-          <span className={`badge badge-${rec.action.toLowerCase()}`}>{rec.action}</span>
-          <span className={`badge badge-${rec.risk_level}`}>{rec.risk_level} risk</span>
+      <div className="flex justify-between items-start mb-[14px]">
+        <div className="flex items-center gap-3">
+          <span className="font-mono font-bold text-[18px]">{rec.symbol}</span>
+          <Badge variant={isBuy ? 'buy' : 'sell'}>{rec.action}</Badge>
+          <Badge variant={riskVariant}>{rec.risk_level} risk</Badge>
         </div>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)' }}>
+        <span className="font-mono text-[11px] text-muted-foreground">
           {new Date(rec.created_at).toLocaleTimeString()}
         </span>
       </div>
 
       {/* Trade details */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12,
-        marginBottom: 14, background: 'var(--bg-2)', padding: '12px 16px',
-      }}>
+      <div className="grid grid-cols-3 gap-3 mb-[14px] bg-popover px-4 py-3 rounded-sm">
         <Detail label="Quantity" value={`${rec.quantity} units`} mono />
         <Detail label="Signal Price" value={fmtUSD(rec.price_at_signal)} mono />
         <Detail label="Total Value" value={fmtUSD(totalValue)} mono highlight />
       </div>
 
       {/* Confidence bar */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', letterSpacing: '0.06em' }}>AI CONFIDENCE</span>
-          <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: actionColor, fontWeight: 700 }}>
+      <div className="mb-[14px]">
+        <div className="flex justify-between mb-[6px]">
+          <span className="section-label">AI CONFIDENCE</span>
+          <span className="font-mono font-bold" style={{ fontSize: 11, color: actionColor, letterSpacing: '0.06em' }}>
             {Math.round(rec.confidence * 100)}%
           </span>
         </div>
-        <div style={{ height: 4, background: 'var(--bg-3)', position: 'relative' }}>
-          <div style={{
-            position: 'absolute', left: 0, top: 0, height: '100%',
-            width: `${rec.confidence * 100}%`,
-            background: actionColor,
-            transition: 'width 0.4s ease',
-          }} />
+        <div className="h-1 bg-accent relative rounded-sm">
+          <div
+            className="absolute left-0 top-0 h-full transition-[width] duration-[400ms] ease-out rounded-sm"
+            style={{ width: `${rec.confidence * 100}%`, background: actionColor }}
+          />
         </div>
       </div>
 
       {/* Reasoning */}
-      <div style={{
-        padding: '12px 14px',
-        background: 'var(--bg-0)',
-        border: '1px solid var(--border)',
-        borderLeft: `3px solid ${actionColor}`,
-        marginBottom: 16,
-        fontSize: 13,
-        color: 'var(--text-1)',
-        lineHeight: 1.6,
-      }}>
-        <Brain size={12} style={{ color: 'var(--text-3)', marginRight: 8, display: 'inline' }} />
+      <div
+        className="px-[14px] py-3 bg-background border border-border mb-4 text-[13px] text-foreground leading-[1.6]"
+        style={{ borderLeft: `3px solid ${actionColor}` }}
+      >
+        <Brain size={12} className="text-muted-foreground mr-2 inline" />
         {rec.reasoning}
       </div>
 
       {/* Warning + Actions */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-3)', fontSize: 11 }}>
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-[6px] text-muted-foreground text-[11px]">
           <AlertTriangle size={11} />
           <span>Paper trade only — not financial advice</span>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={onDismiss}
-            disabled={loading}
-            style={{
-              padding: '8px 16px', background: 'transparent',
-              border: '1px solid var(--border)', color: 'var(--text-2)',
-              display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
-            }}
-          >
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={onDismiss} disabled={loading} className="gap-[6px]">
             <X size={13} /> Dismiss
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
             onClick={onApprove}
             disabled={loading}
-            style={{
-              padding: '8px 20px',
-              background: rec.action === 'BUY' ? 'var(--accent)' : 'var(--red)',
-              color: 'var(--bg-0)', fontWeight: 700, fontSize: 12,
-              fontFamily: 'var(--font-mono)', letterSpacing: '0.06em',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}
+            variant={isBuy ? 'default' : 'destructive'}
+            className={cn("font-mono uppercase gap-[6px]")}
           >
             <Check size={13} /> {loading ? 'EXECUTING...' : 'EXECUTE TRADE'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -264,8 +222,16 @@ function RecCard({ rec, loading, onApprove, onDismiss }: {
 function Detail({ label, value, mono, highlight }: { label: string, value: string, mono?: boolean, highlight?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontFamily: mono ? 'var(--font-mono)' : 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: highlight ? 'var(--accent)' : 'var(--text-0)' }}>{value}</div>
+      <div className="section-label mb-1">{label}</div>
+      <div
+        className={cn(
+          "text-[14px] font-semibold",
+          mono ? "font-mono mono-number" : "font-sans",
+          highlight ? "text-primary" : "text-foreground"
+        )}
+      >
+        {value}
+      </div>
     </div>
   )
 }
