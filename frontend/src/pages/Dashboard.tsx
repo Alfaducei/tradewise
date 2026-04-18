@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getPortfolio } from '../api/client'
 import { TrendingUp, TrendingDown, DollarSign, Activity } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ICON } from '@/lib/icons'
 
 interface Trade {
   symbol: string
@@ -61,7 +62,10 @@ export default function Dashboard() {
   return (
     <div className="fade-in p-7 flex-1 overflow-y-auto">
       <div className="mb-6">
-        <h1 className="text-[22px] font-semibold text-foreground">Dashboard</h1>
+        <div className="flex items-center gap-3">
+          <img src={ICON.dashboard} alt="" aria-hidden className="icon-white w-6 h-6" />
+          <h1 className="text-[22px] font-semibold text-foreground">Dashboard</h1>
+        </div>
         <p className="text-muted-foreground text-[13px] mt-1">
           Paper trading portfolio — live Alpaca data
         </p>

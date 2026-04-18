@@ -3,6 +3,7 @@ import { getWatchlist, addToWatchlist, removeFromWatchlist, analyzeSymbol } from
 import { Plus, Trash2, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { ICON } from '@/lib/icons'
 
 interface WatchItem {
   id: number
@@ -69,7 +70,10 @@ export default function Watchlist() {
       )}
 
       <div className="mb-6">
-        <h1 className="text-[22px] font-semibold">Watchlist</h1>
+        <div className="flex items-center gap-3">
+          <img src={ICON.watchlist} alt="" aria-hidden className="icon-white w-6 h-6" />
+          <h1 className="text-[22px] font-semibold">Watchlist</h1>
+        </div>
         <p className="text-muted-foreground text-[13px] mt-1">
           Assets the AI monitors automatically. Analyze any on demand.
         </p>

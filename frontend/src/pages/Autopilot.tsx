@@ -5,6 +5,8 @@ import { AIBrain, type ThinkingPhase, type AIDecision } from '../components/AIBr
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { ICON } from '@/lib/icons'
+import { drawTradeMarker, flattenLastNMarkers, onLogoLoaded } from '@/lib/trade-markers'
 
 const api = axios.create({ baseURL: '/api' })
 const fmtUSD = (n: number) => '$' + (n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -188,25 +190,10 @@ export default function Autopilot() {
       ctx.strokeStyle = s.color; ctx.lineWidth = s.name === 'Portfolio' ? 2.5 : 1.8
       ctx.lineJoin = 'round'; ctx.stroke()
 
-      pts.forEach((p, i) => {
-        if (!p.trades?.length) return
-        const x = toX(i, len), y = toY(p.value)
-        p.trades.forEach((t, ti) => {
-          const col = ACTION_COLOR[t.action] ?? '#aaa'
-          const icon = ACTION_ICON[t.action] ?? '●'
-          const off = ti * 20
-          ctx.strokeStyle = col + '55'; ctx.lineWidth = 1; ctx.setLineDash([2, 3])
-          ctx.beginPath(); ctx.moveTo(x, y - 6 - off); ctx.lineTo(x, y); ctx.stroke(); ctx.setLineDash([])
-          ctx.fillStyle = CARD; ctx.beginPath(); ctx.arc(x, y - 14 - off, 8, 0, Math.PI * 2); ctx.fill()
-          ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y - 14 - off, 8, 0, Math.PI * 2); ctx.stroke()
-          ctx.fillStyle = col; ctx.font = 'bold 11px Geist Mono, monospace'
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(icon, x, y - 14 - off)
-          if (t.symbol) {
-            ctx.textBaseline = 'alphabetic'; ctx.font = 'bold 11px Geist Mono, monospace'
-            ctx.fillText(t.symbol, x, y - 26 - off)
-          }
-        })
-      })
+      // Only render the last 4 trade events across this series so the chart
+      // stays readable even after many cycles.
+      const markers = flattenLastNMarkers(pts, 4, toX, toY, ACTION_COLOR, ACTION_ICON)
+      markers.forEach(m => drawTradeMarker(ctx, m, CARD))
 
       const lx = toX(len - 1, len), lv = pts.at(-1)!.value, ly = toY(lv)
       ctx.fillStyle = CARD; ctx.beginPath(); ctx.arc(lx, ly, 5, 0, Math.PI * 2); ctx.fill()
@@ -235,7 +222,9 @@ export default function Autopilot() {
   useEffect(() => {
     load()
     const iv = setInterval(load, 6000)
-    return () => { clearInterval(iv); clearTimeout(brainTimer.current) }
+    // Re-paint chart once any freshly requested logo finishes loading
+    const off = onLogoLoaded(() => renderChart())
+    return () => { clearInterval(iv); clearTimeout(brainTimer.current); off() }
   }, [])
 
   function triggerBrain(decision: any) {
@@ -334,6 +323,7 @@ export default function Autopilot() {
       {/* Top bar */}
       <div className="px-5 py-[14px] border-b border-white/5 flex justify-between items-center flex-shrink-0 flex-wrap gap-[10px]">
         <div className="flex items-center gap-3">
+          <img src={ICON.autopilot} alt="" aria-hidden className="icon-white w-6 h-6" />
           <h1 className="font-display font-extrabold text-[21px]" style={{ letterSpacing: '-0.03em' }}>Autopilot</h1>
           {isRunning
             ? <Badge variant="live">LIVE · C{status?.cycle_count}</Badge>

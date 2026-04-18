@@ -3,6 +3,7 @@ import axios from 'axios'
 import { Heart, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { ICON } from '@/lib/icons'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -53,7 +54,7 @@ export default function Donate() {
 
       {/* Header */}
       <div className="text-center mb-9">
-        <div className="text-[40px] mb-3">♥</div>
+        <img src={ICON.donate} alt="" aria-hidden className="icon-accent w-10 h-10 mx-auto mb-3" />
         <h1 className="font-display text-[32px] font-bold text-primary mb-3">
           Support TradeWise
         </h1>

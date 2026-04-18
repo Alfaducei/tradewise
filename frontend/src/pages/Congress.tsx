@@ -3,6 +3,7 @@ import { analyzeSymbol } from '../api/client'
 import { Zap } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
+import { ICON } from '@/lib/icons'
 
 interface CongressTrade {
   chamber: string
@@ -87,7 +88,10 @@ export default function CongressTracker() {
       )}
 
       <div className="mb-2">
-        <h1 className="text-[22px] font-semibold">Congress Tracker</h1>
+        <div className="flex items-center gap-3">
+          <img src={ICON.congress} alt="" aria-hidden className="icon-white w-6 h-6" />
+          <h1 className="text-[22px] font-semibold">Congress Tracker</h1>
+        </div>
         <p className="text-muted-foreground text-[13px] mt-1">
           Public STOCK Act disclosures — members of Congress must report trades within 45 days by law.
         </p>

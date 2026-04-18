@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { ICON } from '@/lib/icons'
+import { drawTradeMarker, flattenLastNMarkers, onLogoLoaded } from '@/lib/trade-markers'
 
 const api = axios.create({ baseURL: '/api' })
 const fmtUSD = (n: number) => '$' + (n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -62,7 +64,8 @@ export default function PortfolioRace() {
     resize()
     const ro = new ResizeObserver(resize)
     if (canvasRef.current) ro.observe(canvasRef.current)
-    return () => ro.disconnect()
+    const off = onLogoLoaded(() => renderChart())
+    return () => { ro.disconnect(); off() }
   }, [])
 
   useEffect(() => {
@@ -216,45 +219,9 @@ export default function PortfolioRace() {
       ctx.lineJoin = 'round'
       ctx.stroke()
 
-      pts.forEach((p, i) => {
-        if (!p.trades || !p.trades.length) return
-        const x = toX(i, len), y = toY(p.value)
-
-        p.trades.forEach((trade, ti) => {
-          const col = ACTION_COLOR[trade.action] ?? '#aaa'
-          const icon = ACTION_ICON[trade.action] ?? '●'
-          const offset = ti * 20
-
-          ctx.strokeStyle = col + '60'
-          ctx.lineWidth = 1
-          ctx.setLineDash([2, 3])
-          ctx.beginPath()
-          ctx.moveTo(x, y - 6 - offset)
-          ctx.lineTo(x, y)
-          ctx.stroke()
-          ctx.setLineDash([])
-
-          ctx.fillStyle = CARD
-          ctx.beginPath(); ctx.arc(x, y - 14 - offset, 8, 0, Math.PI * 2); ctx.fill()
-          ctx.strokeStyle = col
-          ctx.lineWidth = 1.5
-          ctx.beginPath(); ctx.arc(x, y - 14 - offset, 8, 0, Math.PI * 2); ctx.stroke()
-
-          ctx.fillStyle = col
-          ctx.font = `bold 11px Geist Mono, monospace`
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-          ctx.fillText(icon, x, y - 14 - offset)
-          ctx.textBaseline = 'alphabetic'
-
-          if (trade.symbol) {
-            ctx.fillStyle = col
-            ctx.font = `700 11px Geist Mono, monospace`
-            ctx.textAlign = 'center'
-            ctx.fillText(trade.symbol, x, y - 26 - offset)
-          }
-        })
-      })
+      // Only render the last 4 trade events so the chart stays readable
+      const markers = flattenLastNMarkers(pts, 4, toX, toY, ACTION_COLOR, ACTION_ICON)
+      markers.forEach(m => drawTradeMarker(ctx, m, CARD))
 
       const lastX = toX(len - 1, len)
       const lastY = toY(pts.at(-1)!.value)
@@ -303,6 +270,7 @@ export default function PortfolioRace() {
       <div className="flex justify-between items-start flex-wrap gap-[10px]">
         <div>
           <div className="flex items-center gap-[10px] mb-1">
+            <img src={ICON.race} alt="" aria-hidden className="icon-white w-6 h-6" />
             <h1 className="font-display font-extrabold text-[22px]" style={{ letterSpacing: '-0.03em' }}>Live Race</h1>
             {isRunning ? <Badge variant="live">LIVE</Badge> : <Badge variant="paper">PAUSED</Badge>}
           </div>

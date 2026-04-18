@@ -1,23 +1,55 @@
 import { NavLink } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import axios from 'axios'
 import { useTradingMode } from '../context/TradingModeContext'
+import { ICON } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 
-const NAV = [
-  { to: '/',               icon: '◼', label: 'Dashboard'  },
-  { to: '/recommendations',icon: '◈', label: 'Signals'    },
-  { to: '/autopilot',     icon: '⚡', label: 'Autopilot' },
-  { to: '/race',           icon: '▶', label: 'Live Race'  },
-  { to: '/congress',       icon: '⬡', label: 'Congress'   },
-  { to: '/watchlist',      icon: '◎', label: 'Watchlist'  },
-  { to: '/history',        icon: '▣', label: 'History'    },
-  { to: '/admin',          icon: '◧', label: 'Analytics'  },
-  { to: '/feedback',       icon: '✉', label: 'Feedback'   },
-  { to: '/donate',         icon: '♥', label: 'Donate'     },
+const api = axios.create({ baseURL: '/api' })
+
+type NavItem = { to: string; icon: string; label: string; key: string }
+
+const SECTIONS: { title: string; items: NavItem[] }[] = [
+  {
+    title: 'Overview',
+    items: [
+      { to: '/',                icon: ICON.dashboard, label: 'Dashboard',  key: 'dashboard' },
+      { to: '/recommendations', icon: ICON.signals,   label: 'Signals',    key: 'signals' },
+      { to: '/autopilot',       icon: ICON.autopilot, label: 'Autopilot',  key: 'autopilot' },
+      { to: '/race',            icon: ICON.race,      label: 'Live Race',  key: 'race' },
+    ],
+  },
+  {
+    title: 'Research',
+    items: [
+      { to: '/congress',  icon: ICON.congress,  label: 'Congress',   key: 'congress' },
+      { to: '/watchlist', icon: ICON.watchlist, label: 'Watchlist',  key: 'watchlist' },
+      { to: '/history',   icon: ICON.history,   label: 'History',    key: 'history' },
+    ],
+  },
+  {
+    title: 'Account',
+    items: [
+      { to: '/admin',    icon: ICON.analytics, label: 'Analytics', key: 'analytics' },
+      { to: '/feedback', icon: ICON.feedback,  label: 'Feedback',  key: 'feedback' },
+      { to: '/donate',   icon: ICON.donate,    label: 'Donate',    key: 'donate' },
+    ],
+  },
 ]
 
 export default function Sidebar() {
   const { mode, setMode } = useTradingMode()
   const isLive = mode === 'live'
+  const [signalCount, setSignalCount] = useState(0)
+
+  useEffect(() => {
+    const load = () => api.get('/recommendations?status=pending')
+      .then(r => setSignalCount(Array.isArray(r.data) ? r.data.length : 0))
+      .catch(() => {})
+    load()
+    const iv = setInterval(load, 30_000)
+    return () => clearInterval(iv)
+  }, [])
 
   return (
     <nav className="w-[212px] bg-card border-r border-white/5 flex flex-col flex-shrink-0">
@@ -79,28 +111,58 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Nav */}
-      <div className="flex-1 py-2 overflow-y-auto">
-        {NAV.map(({ to, icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) => cn(
-              "flex items-center gap-[9px] px-[18px] py-[8.5px] font-sans text-[12.5px] no-underline",
-              "transition-all duration-[120ms] ease-in-out border-l-2",
-              isActive
-                ? "text-foreground bg-popover border-primary font-semibold"
-                : cn(
-                    "bg-transparent border-transparent font-normal",
-                    label === 'Donate' ? "text-primary" : "text-muted-foreground"
-                  )
-            )}
-            style={{ letterSpacing: '0.01em' }}
-          >
-            <span className="text-[11px] opacity-60 font-mono flex-shrink-0">{icon}</span>
-            {label}
-          </NavLink>
+      {/* Nav — grouped by section */}
+      <div className="flex-1 py-3 overflow-y-auto">
+        {SECTIONS.map((section, si) => (
+          <div key={section.title} className={cn(si > 0 && "mt-4")}>
+            <div
+              className="px-[18px] mb-[6px] font-mono text-muted-foreground uppercase"
+              style={{ fontSize: 11, letterSpacing: '0.14em', opacity: 0.6 }}
+            >
+              {section.title}
+            </div>
+            {section.items.map(({ to, icon, label, key }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                className={({ isActive }) => cn(
+                  "flex items-center gap-[10px] pl-[16px] pr-3 py-[8px] font-sans text-[12.5px] no-underline",
+                  "transition-all duration-[120ms] ease-in-out border-l-2",
+                  isActive
+                    ? "text-foreground bg-popover border-primary font-semibold"
+                    : cn(
+                        "bg-transparent border-transparent font-normal",
+                        key === 'donate' ? "text-primary" : "text-muted-foreground"
+                      )
+                )}
+                style={{ letterSpacing: '0.01em' }}
+              >
+                {({ isActive }: { isActive: boolean }) => (
+                  <>
+                    <img
+                      src={icon}
+                      alt=""
+                      aria-hidden
+                      className={cn("w-[18px] h-[18px] flex-shrink-0", isActive ? "icon-accent" : "icon-white")}
+                    />
+                    <span className="flex-1">{label}</span>
+                    {key === 'signals' && signalCount > 0 && (
+                      <span
+                        className={cn(
+                          "font-mono font-bold rounded-sm px-[6px] py-[1px]",
+                          isActive ? "bg-primary/20 text-primary" : "bg-primary/15 text-primary"
+                        )}
+                        style={{ fontSize: 11, letterSpacing: '0.02em' }}
+                      >
+                        {signalCount}
+                      </span>
+                    )}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </div>
         ))}
       </div>
 
