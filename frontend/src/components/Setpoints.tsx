@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import axios from 'axios'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -23,7 +25,7 @@ const RISK_PARAMS: SetpointParam[] = [
     hint: 'Auto-sell when trade drops this much',
     min: 0.01, max: 0.20, step: 0.01,
     fmt: v => `−${(v * 100).toFixed(0)}%`,
-    color: 'var(--down)',
+    color: 'var(--color-down)',
     presets: [0.02, 0.05, 0.08, 0.10, 0.15],
     presetLabels: ['2%', '5%', '8%', '10%', '15%'],
   },
@@ -32,7 +34,7 @@ const RISK_PARAMS: SetpointParam[] = [
     hint: 'Auto-sell when trade reaches this gain',
     min: 0.03, max: 0.50, step: 0.01,
     fmt: v => `+${(v * 100).toFixed(0)}%`,
-    color: 'var(--up)',
+    color: 'var(--color-up)',
     presets: [0.05, 0.10, 0.15, 0.20, 0.30],
     presetLabels: ['5%', '10%', '15%', '20%', '30%'],
   },
@@ -41,7 +43,7 @@ const RISK_PARAMS: SetpointParam[] = [
     hint: 'Only enter trades above this AI confidence',
     min: 0.40, max: 0.95, step: 0.05,
     fmt: v => `${(v * 100).toFixed(0)}%`,
-    color: 'var(--live)',
+    color: 'var(--color-primary)',
     presets: [0.50, 0.60, 0.65, 0.75, 0.85],
     presetLabels: ['50%', '60%', '65%', '75%', '85%'],
   },
@@ -50,7 +52,7 @@ const RISK_PARAMS: SetpointParam[] = [
     hint: 'Maximum simultaneous open trades',
     min: 1, max: 20, step: 1,
     fmt: v => String(Math.round(v)),
-    color: 'var(--sky)',
+    color: 'var(--color-sky)',
     presets: [2, 3, 5, 8, 10],
     presetLabels: ['2', '3', '5', '8', '10'],
     isInt: true,
@@ -69,7 +71,7 @@ const RISK_PARAMS: SetpointParam[] = [
     hint: 'How often AI analyses the watchlist',
     min: 60, max: 3600, step: 60,
     fmt: v => v >= 3600 ? '1h' : `${Math.round(v / 60)}m`,
-    color: 'var(--amber)',
+    color: 'var(--color-amber)',
     presets: [60, 120, 300, 600, 1800],
     presetLabels: ['1m', '2m', '5m', '10m', '30m'],
     isInt: true,
@@ -86,18 +88,6 @@ export default function Setpoints({ config, onSave }: SetpointsProps) {
   const [drafts, setDrafts] = useState<Record<string, number>>({})
   const [saving, setSaving] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  // Click outside closes
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpenKey(null)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
 
   const getDraft = (key: string) => drafts[key] ?? config[key] ?? 0
 
@@ -129,21 +119,22 @@ export default function Setpoints({ config, onSave }: SetpointsProps) {
   }
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
+    <div className="relative">
       {/* Toast */}
       {toast && (
-        <div style={{
-          position: 'fixed', bottom: 20, right: 20, zIndex: 999,
-          background: 'var(--ink-3)', border: '1px solid rgba(212,255,0,0.3)',
-          borderRadius: 'var(--r)', padding: '9px 16px',
-          fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--live)',
-          animation: 'fade-up 0.2s ease',
-        }}>
+        <div
+          className={cn(
+            "fixed bottom-5 right-5 z-[999]",
+            "bg-accent border border-primary/30 rounded-lg",
+            "px-4 py-[9px] font-mono text-[11px] text-primary",
+            "animate-fade-up"
+          )}
+        >
           ✓ {toast}
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+      <div className="grid grid-cols-3 gap-2">
         {RISK_PARAMS.map(param => {
           const val = getDraft(param.key)
           const savedVal = config[param.key] ?? 0
@@ -151,127 +142,167 @@ export default function Setpoints({ config, onSave }: SetpointsProps) {
           const isDirty = val !== savedVal
 
           return (
-            <div
+            <Popover
               key={param.key}
-              onClick={() => setOpenKey(isOpen ? null : param.key)}
-              style={{
-                background: isOpen ? 'var(--ink-3)' : 'var(--ink-2)',
-                border: `1px solid ${isOpen ? param.color : 'var(--line-sub)'}`,
-                borderRadius: 'var(--r)',
-                padding: '11px 13px',
-                cursor: 'pointer',
-                position: 'relative',
-                transition: 'all 0.15s',
-                userSelect: 'none',
-              }}
-              onMouseEnter={e => !isOpen && ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.12)')}
-              onMouseLeave={e => !isOpen && ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-sub)')}
+              open={isOpen}
+              onOpenChange={(o) => setOpenKey(o ? param.key : null)}
             >
-              {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 }}>
-                <span className="sh" style={{ fontSize: 9 }}>{param.label}</span>
-                <span style={{
-                  fontSize: 12, color: isOpen ? param.color : 'var(--paper-3)',
-                  transition: 'transform 0.15s',
-                  transform: isOpen ? 'rotate(45deg)' : 'none',
-                  lineHeight: 1,
-                }}>✎</span>
-              </div>
-
-              {/* Value */}
-              <div style={{ fontFamily: 'var(--f-mono)', fontSize: 20, fontWeight: 700, color: param.color, letterSpacing: '-0.02em', margin: '5px 0 3px' }}>
-                {param.fmt(val)}
-                {isDirty && !isOpen && (
-                  <span style={{ fontSize: 9, color: 'var(--amber)', marginLeft: 6, fontFamily: 'var(--f-mono)', verticalAlign: 'middle' }}>unsaved</span>
-                )}
-              </div>
-              <div style={{ fontSize: 10.5, color: 'var(--paper-3)', lineHeight: 1.4 }}>{param.hint}</div>
-
-              {/* ── Popover ─────────────────────────────────────────── */}
-              {isOpen && (
+              <PopoverTrigger asChild>
                 <div
-                  onClick={e => e.stopPropagation()}
+                  className={cn(
+                    "rounded-lg px-[13px] py-[11px] cursor-pointer transition-all select-none",
+                    "relative",
+                    isOpen
+                      ? "bg-accent"
+                      : "bg-popover hover:border-white/15"
+                  )}
                   style={{
-                    position: 'absolute', left: 0, right: 0, top: 'calc(100% + 6px)',
-                    background: 'var(--ink-2)', border: `1px solid ${param.color}44`,
-                    borderRadius: 'var(--r)', padding: '13px 14px', zIndex: 40,
-                    boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
+                    border: `1px solid ${isOpen ? param.color : 'var(--line-sub)'}`,
                   }}
                 >
-                  {/* Slider row */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                    <button
-                      onClick={e => { e.stopPropagation(); adjust(param, -param.step) }}
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-[2px]">
+                    <span className="section-label" style={{ fontSize: 9 }}>{param.label}</span>
+                    <span
+                      className="leading-none transition-transform duration-150"
                       style={{
-                        width: 28, height: 28, borderRadius: 4, flexShrink: 0,
-                        background: 'var(--ink-3)', border: '1px solid var(--line-sub)',
-                        color: 'var(--down)', fontSize: 16, fontWeight: 700, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 12,
+                        color: isOpen ? param.color : 'var(--color-muted-foreground)',
+                        transform: isOpen ? 'rotate(45deg)' : 'none',
                       }}
-                    >−</button>
-                    <input
-                      type="range" min={param.min} max={param.max} step={param.step} value={val}
-                      onChange={e => {
-                        const v = parseFloat(e.target.value)
-                        setDraft(param.key, param.isInt ? Math.round(v) : v)
-                      }}
-                      style={{ flex: 1, accentColor: param.color }}
-                    />
-                    <button
-                      onClick={e => { e.stopPropagation(); adjust(param, param.step) }}
-                      style={{
-                        width: 28, height: 28, borderRadius: 4, flexShrink: 0,
-                        background: 'var(--ink-3)', border: '1px solid var(--line-sub)',
-                        color: 'var(--up)', fontSize: 16, fontWeight: 700, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}
-                    >+</button>
-                    <span style={{ fontFamily: 'var(--f-mono)', fontSize: 13, fontWeight: 700, color: param.color, minWidth: 40, textAlign: 'right' }}>
-                      {param.fmt(val)}
+                    >
+                      ✎
                     </span>
                   </div>
 
-                  {/* Preset chips */}
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10 }}>
-                    {param.presets.map((p, i) => {
-                      const isActive = Math.abs(p - val) < 0.001
-                      return (
-                        <button
-                          key={p}
-                          onClick={e => { e.stopPropagation(); setDraft(param.key, p) }}
-                          style={{
-                            padding: '4px 9px', borderRadius: 3,
-                            background: isActive ? `${param.color}18` : 'var(--ink-3)',
-                            border: `1px solid ${isActive ? param.color : 'var(--line-sub)'}`,
-                            fontFamily: 'var(--f-mono)', fontSize: 10, fontWeight: 700,
-                            color: isActive ? param.color : 'var(--paper-2)',
-                            cursor: 'pointer', transition: 'all 0.1s',
-                          }}
-                        >
-                          {param.presetLabels[i]}
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  {/* Save */}
-                  <button
-                    onClick={e => { e.stopPropagation(); handleSave(param) }}
-                    disabled={saving === param.key}
+                  {/* Value */}
+                  <div
+                    className="font-mono font-bold"
                     style={{
-                      width: '100%', padding: '7px 0',
-                      background: param.color, color: 'var(--ink)',
-                      border: 'none', borderRadius: 3,
-                      fontFamily: 'var(--f-display)', fontSize: 11, fontWeight: 800,
-                      cursor: 'pointer', letterSpacing: '0.02em',
-                      opacity: saving === param.key ? 0.6 : 1,
+                      fontSize: 20,
+                      color: param.color,
+                      letterSpacing: '-0.02em',
+                      margin: '5px 0 3px',
                     }}
                   >
-                    {saving === param.key ? 'SAVING…' : 'SAVE →'}
-                  </button>
+                    {param.fmt(val)}
+                    {isDirty && !isOpen && (
+                      <span
+                        className="font-mono text-amber align-middle"
+                        style={{ fontSize: 9, marginLeft: 6 }}
+                      >
+                        unsaved
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className="text-muted-foreground leading-[1.4]"
+                    style={{ fontSize: 10.5 }}
+                  >
+                    {param.hint}
+                  </div>
                 </div>
-              )}
-            </div>
+              </PopoverTrigger>
+
+              <PopoverContent
+                align="start"
+                sideOffset={6}
+                className={cn(
+                  "w-[var(--radix-popover-trigger-width)] rounded-lg p-0",
+                  "bg-popover shadow-[0_8px_28px_rgb(0_0_0/0.55)]"
+                )}
+                style={{ border: `1px solid ${param.color}44`, padding: '13px 14px' }}
+              >
+                {/* Slider row */}
+                <div className="flex items-center gap-2 mb-[10px]">
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); adjust(param, -param.step) }}
+                    className={cn(
+                      "w-7 h-7 flex-shrink-0 rounded-[4px]",
+                      "bg-accent border border-white/5",
+                      "text-down font-bold cursor-pointer flex items-center justify-center"
+                    )}
+                    style={{ fontSize: 16 }}
+                  >−</button>
+                  <input
+                    type="range"
+                    min={param.min}
+                    max={param.max}
+                    step={param.step}
+                    value={val}
+                    onChange={e => {
+                      const v = parseFloat(e.target.value)
+                      setDraft(param.key, param.isInt ? Math.round(v) : v)
+                    }}
+                    className="flex-1"
+                    style={{ accentColor: param.color }}
+                  />
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); adjust(param, param.step) }}
+                    className={cn(
+                      "w-7 h-7 flex-shrink-0 rounded-[4px]",
+                      "bg-accent border border-white/5",
+                      "text-up font-bold cursor-pointer flex items-center justify-center"
+                    )}
+                    style={{ fontSize: 16 }}
+                  >+</button>
+                  <span
+                    className="font-mono font-bold text-right min-w-10"
+                    style={{ fontSize: 13, color: param.color }}
+                  >
+                    {param.fmt(val)}
+                  </span>
+                </div>
+
+                {/* Preset chips */}
+                <div className="flex gap-[5px] flex-wrap mb-[10px]">
+                  {param.presets.map((p, i) => {
+                    const isActive = Math.abs(p - val) < 0.001
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={e => { e.stopPropagation(); setDraft(param.key, p) }}
+                        className={cn(
+                          "px-[9px] py-1 rounded-sm font-mono font-bold cursor-pointer transition-all",
+                          isActive ? "" : "bg-accent text-muted-foreground"
+                        )}
+                        style={{
+                          fontSize: 10,
+                          background: isActive ? `${param.color}18` : undefined,
+                          border: `1px solid ${isActive ? param.color : 'var(--line-sub)'}`,
+                          color: isActive ? param.color : undefined,
+                        }}
+                      >
+                        {param.presetLabels[i]}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Save */}
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); handleSave(param) }}
+                  disabled={saving === param.key}
+                  className={cn(
+                    "w-full py-[7px] rounded-sm border-0 cursor-pointer",
+                    "font-display font-extrabold",
+                    saving === param.key && "opacity-60"
+                  )}
+                  style={{
+                    background: param.color,
+                    color: 'var(--color-background)',
+                    fontSize: 11,
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  {saving === param.key ? 'SAVING…' : 'SAVE →'}
+                </button>
+              </PopoverContent>
+            </Popover>
           )
         })}
       </div>
