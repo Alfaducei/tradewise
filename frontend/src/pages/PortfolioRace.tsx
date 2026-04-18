@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 const api = axios.create({ baseURL: '/api' })
 const fmtUSD = (n: number) => '$' + (n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmtPct = (n: number, signed = true) => (signed && n >= 0 ? '+' : '') + (n ?? 0).toFixed(2) + '%'
 
-// Each series gets a color
+const cssColor = (token: string): string => {
+  if (typeof window === 'undefined') return '#000'
+  return getComputedStyle(document.documentElement).getPropertyValue(`--color-${token}`).trim() || '#000'
+}
+
 const PALETTE = ['#d4ff00','#22c55e','#38bdf8','#f472b6','#a78bfa','#34d399','#fb923c','#e879f9','#facc15']
 
-const ACTION_ICON: Record<string, string> = {
-  BUY: '▲', SELL: '▼', STOP_LOSS: '✕', TAKE_PROFIT: '★',
-}
-const ACTION_COLOR: Record<string, string> = {
-  BUY: '#22c55e', SELL: '#f43f5e', STOP_LOSS: '#f43f5e', TAKE_PROFIT: '#d4ff00',
-}
+const ACTION_ICON: Record<string, string> = { BUY: '▲', SELL: '▼', STOP_LOSS: '✕', TAKE_PROFIT: '★' }
+const ACTION_COLOR: Record<string, string> = { BUY: '#22c55e', SELL: '#f43f5e', STOP_LOSS: '#f43f5e', TAKE_PROFIT: '#d4ff00' }
 
 interface TradeEvent {
   symbol: string
@@ -42,18 +44,14 @@ interface SeriesData {
 export default function PortfolioRace() {
   const canvasRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<HTMLCanvasElement>(null)
-  const animRef = useRef<number>(0)
   const dataRef = useRef<Map<string, SeriesData>>(new Map())
   const snapshotsRef = useRef<Snapshot[]>([])
-  const frameRef = useRef(0)
 
   const [isRunning, setIsRunning] = useState(false)
   const [speed, setSpeed] = useState(5)
   const [summary, setSummary] = useState<any>(null)
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; content: any } | null>(null)
   const [tradeLog, setTradeLog] = useState<{ time: string; symbol: string; action: string; pct: number }[]>([])
 
-  // Resize canvas
   useEffect(() => {
     const resize = () => {
       if (!chartRef.current || !canvasRef.current) return
@@ -67,7 +65,6 @@ export default function PortfolioRace() {
     return () => ro.disconnect()
   }, [])
 
-  // Polling
   useEffect(() => {
     let iv: ReturnType<typeof setInterval>
     const fetch = async () => {
@@ -82,40 +79,27 @@ export default function PortfolioRace() {
         setSummary(status)
         snapshotsRef.current = chartData
 
-        // Build series from real data
         const map = new Map<string, SeriesData>(dataRef.current)
         const portColor = PALETTE[0]
 
-        // Portfolio series from snapshots
-        if (!map.has('Portfolio')) {
-          map.set('Portfolio', { name: 'Portfolio', color: portColor, points: [] })
-        }
+        if (!map.has('Portfolio')) map.set('Portfolio', { name: 'Portfolio', color: portColor, points: [] })
         const portSeries = map.get('Portfolio')!
         portSeries.points = chartData.map(s => ({ cycle: s.cycle, value: s.pnl_pct, trades: s.trades }))
 
-        // S&P benchmark (random walk seeded to cycles)
-        if (!map.has('S&P 500')) {
-          map.set('S&P 500', { name: 'S&P 500', color: PALETTE[1], points: [] })
-        }
+        if (!map.has('S&P 500')) map.set('S&P 500', { name: 'S&P 500', color: PALETTE[1], points: [] })
         const spx = map.get('S&P 500')!
-        // Re-generate from same seed each time so it's stable
         const spxPts: number[] = [0]
         for (let i = 1; i < chartData.length; i++) {
           const prev = spxPts[i - 1]
-          // Pseudo-random from cycle number
           const rand = Math.sin(i * 9301 + 49297) % 1
           spxPts.push(+(prev + (rand - 0.485) * 0.15).toFixed(3))
         }
         spx.points = chartData.map((s, i) => ({ cycle: s.cycle, value: spxPts[i] ?? 0 }))
 
-        // Individual trades from most recent status
         const trades: any[] = status.trades ?? []
         trades.forEach((pos: any, i: number) => {
           const key = pos.symbol
-          if (!map.has(key)) {
-            map.set(key, { name: key, color: PALETTE[(i + 2) % PALETTE.length], points: [] })
-          }
-          // Add current point
+          if (!map.has(key)) map.set(key, { name: key, color: PALETTE[(i + 2) % PALETTE.length], points: [] })
           const s = map.get(key)!
           const lastCycle = chartData.at(-1)?.cycle ?? 0
           if (!s.points.length || s.points.at(-1)!.cycle !== lastCycle) {
@@ -124,15 +108,11 @@ export default function PortfolioRace() {
           }
         })
 
-        // Remove trades that no longer exist
         const activeSyms = new Set(['Portfolio', 'S&P 500', ...trades.map((p: any) => p.symbol)])
-        for (const [k] of map) {
-          if (!activeSyms.has(k)) map.delete(k)
-        }
+        for (const [k] of map) if (!activeSyms.has(k)) map.delete(k)
 
         dataRef.current = map
 
-        // Build trade log from snapshots
         const log: typeof tradeLog = []
         for (const snap of chartData.slice(-30)) {
           for (const t of snap.trades) {
@@ -149,7 +129,6 @@ export default function PortfolioRace() {
     return () => clearInterval(iv)
   }, [speed])
 
-  // Canvas render
   function renderChart() {
     const canvas = chartRef.current
     if (!canvas) return
@@ -160,20 +139,24 @@ export default function PortfolioRace() {
     const cW = W - PAD.left - PAD.right
     const cH = H - PAD.top - PAD.bottom
 
+    const CARD = cssColor('card')
+    const MUTED = cssColor('muted-foreground')
+    const UP = cssColor('up')
+    const DOWN = cssColor('down')
+
     ctx.clearRect(0, 0, W, H)
-    ctx.fillStyle = '#0e0f18'
+    ctx.fillStyle = CARD
     ctx.fillRect(0, 0, W, H)
 
     const allSeries = Array.from(dataRef.current.values()).filter(s => s.points.length > 1)
     if (!allSeries.length) {
-      ctx.fillStyle = 'rgba(148,151,184,0.3)'
-      ctx.font = '11px Geist Mono, monospace'
+      ctx.fillStyle = MUTED + '4D'
+      ctx.font = '500 11px Geist Mono, monospace'
       ctx.textAlign = 'center'
       ctx.fillText('Start Autopilot to see live race', W / 2, H / 2)
       return
     }
 
-    // Y range
     let minV = Infinity, maxV = -Infinity
     allSeries.forEach(s => s.points.forEach(p => {
       if (p.value < minV) minV = p.value
@@ -183,13 +166,11 @@ export default function PortfolioRace() {
     minV -= pad; maxV += pad
     const rng = maxV - minV || 1
 
-    // X range (by cycle index within each series)
     const maxLen = Math.max(...allSeries.map(s => s.points.length))
 
     const toX = (i: number, len: number) => PAD.left + (i / Math.max(len - 1, 1)) * cW
     const toY = (v: number) => PAD.top + cH - ((v - minV) / rng) * cH
 
-    // Grid
     const gridCount = 5
     for (let i = 0; i <= gridCount; i++) {
       const v = minV + (rng / gridCount) * i
@@ -197,26 +178,23 @@ export default function PortfolioRace() {
       ctx.strokeStyle = 'rgba(255,255,255,0.04)'
       ctx.lineWidth = 1
       ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y); ctx.stroke()
-      ctx.fillStyle = 'rgba(148,151,184,0.4)'
-      ctx.font = '9.5px Geist Mono, monospace'
+      ctx.fillStyle = MUTED + '66'
+      ctx.font = '500 11px Geist Mono, monospace'
       ctx.textAlign = 'right'
       ctx.fillText((v >= 0 ? '+' : '') + v.toFixed(1) + '%', PAD.left - 7, y + 3.5)
     }
 
-    // Zero line
     const zy = toY(0)
     ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1
     ctx.setLineDash([3, 5])
     ctx.beginPath(); ctx.moveTo(PAD.left, zy); ctx.lineTo(PAD.left + cW, zy); ctx.stroke()
     ctx.setLineDash([])
 
-    // Draw each series
     allSeries.forEach(s => {
       const pts = s.points
       if (pts.length < 2) return
       const len = pts.length
 
-      // Area fill
       ctx.beginPath()
       pts.forEach((p, i) => {
         const x = toX(i, len), y = toY(p.value)
@@ -228,7 +206,6 @@ export default function PortfolioRace() {
       ctx.fillStyle = s.color + '14'
       ctx.fill()
 
-      // Line
       ctx.beginPath()
       pts.forEach((p, i) => {
         const x = toX(i, len), y = toY(p.value)
@@ -239,7 +216,6 @@ export default function PortfolioRace() {
       ctx.lineJoin = 'round'
       ctx.stroke()
 
-      // ── Trade event markers ─────────────────────────────────────────────
       pts.forEach((p, i) => {
         if (!p.trades || !p.trades.length) return
         const x = toX(i, len), y = toY(p.value)
@@ -247,9 +223,8 @@ export default function PortfolioRace() {
         p.trades.forEach((trade, ti) => {
           const col = ACTION_COLOR[trade.action] ?? '#aaa'
           const icon = ACTION_ICON[trade.action] ?? '●'
-          const offset = ti * 20  // stack multiple trades vertically
+          const offset = ti * 20
 
-          // Vertical dashed line down to the chart point
           ctx.strokeStyle = col + '60'
           ctx.lineWidth = 1
           ctx.setLineDash([2, 3])
@@ -259,68 +234,61 @@ export default function PortfolioRace() {
           ctx.stroke()
           ctx.setLineDash([])
 
-          // Marker circle
-          ctx.fillStyle = '#0e0f18'
+          ctx.fillStyle = CARD
           ctx.beginPath(); ctx.arc(x, y - 14 - offset, 8, 0, Math.PI * 2); ctx.fill()
           ctx.strokeStyle = col
           ctx.lineWidth = 1.5
           ctx.beginPath(); ctx.arc(x, y - 14 - offset, 8, 0, Math.PI * 2); ctx.stroke()
 
-          // Icon inside circle
           ctx.fillStyle = col
-          ctx.font = `bold 8px Geist Mono, monospace`
+          ctx.font = `bold 11px Geist Mono, monospace`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
           ctx.fillText(icon, x, y - 14 - offset)
           ctx.textBaseline = 'alphabetic'
 
-          // Symbol label on hover area (always show symbol above marker)
           if (trade.symbol) {
             ctx.fillStyle = col
-            ctx.font = `700 9px Geist Mono, monospace`
+            ctx.font = `700 11px Geist Mono, monospace`
             ctx.textAlign = 'center'
             ctx.fillText(trade.symbol, x, y - 26 - offset)
           }
         })
       })
 
-      // End dot
       const lastX = toX(len - 1, len)
       const lastY = toY(pts.at(-1)!.value)
-      ctx.fillStyle = '#0e0f18'
+      ctx.fillStyle = CARD
       ctx.beginPath(); ctx.arc(lastX, lastY, 5, 0, Math.PI * 2); ctx.fill()
       ctx.fillStyle = s.color
       ctx.beginPath(); ctx.arc(lastX, lastY, 3.5, 0, Math.PI * 2); ctx.fill()
 
-      // End label
       const lastVal = pts.at(-1)!.value
       const sign = lastVal >= 0 ? '+' : ''
       ctx.textAlign = 'left'
       ctx.fillStyle = s.color
-      ctx.font = `bold 10px Geist Mono, monospace`
+      ctx.font = `bold 11px Geist Mono, monospace`
       ctx.fillText(s.name.length > 8 ? s.name.slice(0, 7) : s.name, lastX + 9, lastY - 3)
-      ctx.fillStyle = lastVal >= 0 ? '#22c55e' : '#f43f5e'
+      ctx.fillStyle = lastVal >= 0 ? UP : DOWN
       ctx.fillText(`${sign}${lastVal.toFixed(2)}%`, lastX + 9, lastY + 9)
     })
 
-    // X axis tick labels (every N cycles)
     const tickStep = Math.max(1, Math.floor(maxLen / 7))
     const refSeries = allSeries[0]
     refSeries.points.forEach((p, i) => {
       if (i % tickStep !== 0) return
       const x = toX(i, refSeries.points.length)
-      ctx.fillStyle = 'rgba(148,151,184,0.3)'
-      ctx.font = '9px Geist Mono, monospace'
+      ctx.fillStyle = MUTED + '4D'
+      ctx.font = '500 11px Geist Mono, monospace'
       ctx.textAlign = 'center'
       ctx.fillText(`${p.cycle}`, x, H - PAD.bottom + 14)
     })
-    ctx.fillStyle = 'rgba(148,151,184,0.25)'
-    ctx.font = '9px Geist Mono, monospace'
+    ctx.fillStyle = MUTED + '40'
+    ctx.font = '500 11px Geist Mono, monospace'
     ctx.textAlign = 'center'
     ctx.fillText('Cycle', PAD.left + cW / 2, H - 4)
   }
 
-  // Leaderboard
   const leaders = Array.from(dataRef.current.values())
     .filter(s => s.points.length > 0)
     .map(s => ({ name: s.name, color: s.color, value: s.points.at(-1)?.value ?? 0 }))
@@ -330,25 +298,26 @@ export default function PortfolioRace() {
   const pnlPct = summary?.pnl_pct_since_start ?? 0
 
   return (
-    <div className="fade-up" style={{ padding: 24, flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
-
+    <div className="fade-up p-6 flex-1 flex flex-col gap-[14px]">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
+      <div className="flex justify-between items-start flex-wrap gap-[10px]">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <h1 style={{ fontFamily: 'var(--f-display)', fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em' }}>Live Race</h1>
-            {isRunning
-              ? <span className="tag tag-live">LIVE</span>
-              : <span className="tag tag-paper">PAUSED</span>}
+          <div className="flex items-center gap-[10px] mb-1">
+            <h1 className="font-display font-extrabold text-[22px]" style={{ letterSpacing: '-0.03em' }}>Live Race</h1>
+            {isRunning ? <Badge variant="live">LIVE</Badge> : <Badge variant="paper">PAUSED</Badge>}
           </div>
-          <p style={{ fontSize: 12, color: 'var(--p3)' }}>
-            Portfolio vs trades vs S&P 500 · Trade markers show AI entries & exits
+          <p className="text-[12px] text-muted-foreground">
+            Portfolio vs trades vs S&amp;P 500 · Trade markers show AI entries &amp; exits
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span className="sh">Refresh</span>
-          <select value={speed} onChange={e => setSpeed(+e.target.value)}
-            style={{ padding: '5px 10px', fontSize: 11, fontFamily: 'var(--f-mono)', width: 70 }}>
+        <div className="flex gap-2 items-center">
+          <span className="section-label">Refresh</span>
+          <select
+            value={speed}
+            onChange={e => setSpeed(+e.target.value)}
+            className="px-[10px] py-[5px] font-mono bg-popover border border-white/5 rounded-sm text-foreground"
+            style={{ fontSize: 11, width: 70 }}
+          >
             {[2, 5, 10, 30].map(s => <option key={s} value={s}>{s}s</option>)}
           </select>
         </div>
@@ -356,23 +325,22 @@ export default function PortfolioRace() {
 
       {/* Leaderboard */}
       {leaders.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div className="flex gap-2 flex-wrap">
           {leaders.map((l, i) => (
-            <div key={l.name} style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '7px 12px',
-              background: 'var(--ink1)', border: `1px solid ${l.color}22`,
-              borderRadius: 'var(--r)', minWidth: 140,
-            }}>
-              <div style={{
-                fontFamily: 'var(--f-mono)', fontSize: 11, fontWeight: 700,
-                color: '#0e0f18', background: l.color,
-                width: 20, height: 20, borderRadius: 3,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>{i + 1}</div>
+            <div
+              key={l.name}
+              className="flex items-center gap-2 px-3 py-[7px] bg-card rounded-lg min-w-[140px]"
+              style={{ border: `1px solid ${l.color}22` }}
+            >
+              <div
+                className="w-5 h-5 rounded-[3px] flex items-center justify-center flex-shrink-0 font-mono font-bold"
+                style={{ color: 'var(--color-background)', background: l.color, fontSize: 11 }}
+              >
+                {i + 1}
+              </div>
               <div>
-                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10.5, fontWeight: 700, color: l.color }}>{l.name}</div>
-                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 13, fontWeight: 700, color: l.value >= 0 ? 'var(--up)' : 'var(--down)' }}>
+                <div className="font-mono font-bold" style={{ fontSize: 11, color: l.color }}>{l.name}</div>
+                <div className={cn("font-mono font-bold mono-number text-[13px]", l.value >= 0 ? "text-up" : "text-down")}>
                   {fmtPct(l.value)}
                 </div>
               </div>
@@ -382,77 +350,77 @@ export default function PortfolioRace() {
       )}
 
       {/* Chart */}
-      <div className="surface" style={{ flex: 1, minHeight: 380, overflow: 'hidden', position: 'relative' }} ref={canvasRef}>
-        <canvas ref={chartRef} style={{ width: '100%', height: '100%', minHeight: 380, display: 'block' }} />
+      <div className="bg-card border border-white/5 rounded-lg flex-1 min-h-[380px] overflow-hidden relative" ref={canvasRef}>
+        <canvas ref={chartRef} className="block w-full h-full min-h-[380px]" />
 
-        {/* Legend */}
-        <div style={{
-          position: 'absolute', bottom: 10, left: 16,
-          display: 'flex', gap: 16, flexWrap: 'wrap',
-        }}>
+        <div className="absolute bottom-[10px] left-4 flex gap-4 flex-wrap">
           {Object.entries(ACTION_COLOR).map(([action, color]) => (
-            <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <div style={{
-                width: 14, height: 14, borderRadius: '50%',
-                background: '#0e0f18', border: `1.5px solid ${color}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'var(--f-mono)', fontSize: 7, color, fontWeight: 700,
-              }}>{ACTION_ICON[action]}</div>
-              <span style={{ fontFamily: 'var(--f-mono)', fontSize: 9, color: 'var(--p3)' }}>{action.replace('_', ' ')}</span>
+            <div key={action} className="flex items-center gap-[5px]">
+              <div
+                className="w-[14px] h-[14px] rounded-full flex items-center justify-center font-mono font-bold"
+                style={{ background: 'var(--color-card)', border: `1.5px solid ${color}`, fontSize: 11, color }}
+              >
+                {ACTION_ICON[action]}
+              </div>
+              <span className="font-mono text-muted-foreground text-[11px]">{action.replace('_', ' ')}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Stats + Trade log */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 12 }}>
-
+      <div className="grid grid-cols-[1fr_340px] gap-3">
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <div className="grid grid-cols-3 gap-[10px]">
           {[
-            { label: 'Portfolio', value: fmtUSD(summary?.portfolio?.portfolio_value ?? 0), color: 'var(--paper)' },
-            { label: 'P&L', value: fmtUSD(pnl), color: pnl >= 0 ? 'var(--up)' : 'var(--down)' },
-            { label: 'Return', value: fmtPct(pnlPct), color: pnlPct >= 0 ? 'var(--up)' : 'var(--down)' },
-            { label: 'Cash', value: fmtUSD(summary?.portfolio?.cash ?? 0), color: 'var(--paper)' },
-            { label: 'Trades', value: `${summary?.trades?.length ?? 0}`, color: 'var(--sky)' },
-            { label: 'AI Cycles', value: `${summary?.cycle_count ?? 0}`, color: 'var(--p2)' },
+            { label: 'Portfolio', value: fmtUSD(summary?.portfolio?.portfolio_value ?? 0), color: 'var(--color-foreground)' },
+            { label: 'P&L', value: fmtUSD(pnl), color: pnl >= 0 ? 'var(--color-up)' : 'var(--color-down)' },
+            { label: 'Return', value: fmtPct(pnlPct), color: pnlPct >= 0 ? 'var(--color-up)' : 'var(--color-down)' },
+            { label: 'Cash', value: fmtUSD(summary?.portfolio?.cash ?? 0), color: 'var(--color-foreground)' },
+            { label: 'Trades', value: `${summary?.trades?.length ?? 0}`, color: 'var(--color-sky)' },
+            { label: 'AI Cycles', value: `${summary?.cycle_count ?? 0}`, color: 'var(--color-muted-foreground)' },
           ].map(s => (
-            <div key={s.label} className="surface" style={{ padding: '11px 14px' }}>
-              <div className="sh" style={{ marginBottom: 6 }}>{s.label}</div>
-              <div style={{ fontFamily: 'var(--f-mono)', fontSize: 16, fontWeight: 700, color: s.color, letterSpacing: '-0.02em' }}>{s.value}</div>
+            <div key={s.label} className="bg-card border border-white/5 rounded-lg px-[14px] py-[11px]">
+              <div className="section-label mb-[6px]">{s.label}</div>
+              <div
+                className="font-mono font-bold mono-number text-[16px]"
+                style={{ color: s.color, letterSpacing: '-0.02em' }}
+              >
+                {s.value}
+              </div>
             </div>
           ))}
         </div>
 
         {/* Trade log */}
-        <div className="surface" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--lines)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-            <span style={{ fontFamily: 'var(--f-display)', fontSize: 12.5, fontWeight: 700 }}>Trade Log</span>
-            <span className="sh">{tradeLog.length} executed</span>
+        <div className="bg-card border border-white/5 rounded-lg overflow-hidden flex flex-col">
+          <div className="px-[14px] py-[10px] border-b border-white/5 flex justify-between items-center flex-shrink-0">
+            <span className="font-display font-bold text-[12.5px]">Trade Log</span>
+            <span className="section-label">{tradeLog.length} executed</span>
           </div>
-          <div style={{ overflowY: 'auto', flex: 1, maxHeight: 160 }}>
+          <div className="overflow-y-auto flex-1 max-h-[160px]">
             {!tradeLog.length ? (
-              <div style={{ padding: 20, textAlign: 'center', fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--p4)' }}>NO EXECUTED TRADES YET</div>
+              <div className="p-5 text-center font-mono text-muted-foreground text-[11px]">NO EXECUTED TRADES YET</div>
             ) : tradeLog.map((t, i) => {
-              const col = ACTION_COLOR[t.action] ?? 'var(--p2)'
+              const col = ACTION_COLOR[t.action] ?? 'var(--color-muted-foreground)'
               return (
-                <div key={i} style={{ padding: '7px 14px', borderBottom: '1px solid var(--lines)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{
-                    width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-                    background: col + '18', border: `1px solid ${col}44`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: 'var(--f-mono)', fontSize: 8, color: col, fontWeight: 700,
-                  }}>{ACTION_ICON[t.action]}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontFamily: 'var(--f-display)', fontWeight: 800, fontSize: 12 }}>{t.symbol}</span>
-                      <span style={{ fontFamily: 'var(--f-mono)', fontSize: 9, color: col, fontWeight: 700 }}>{t.action.replace('_', ' ')}</span>
+                <div key={i} className="px-[14px] py-[7px] border-b border-white/5 flex items-center gap-2">
+                  <div
+                    className="w-[18px] h-[18px] rounded-full flex-shrink-0 flex items-center justify-center font-mono font-bold"
+                    style={{ background: col + '18', border: `1px solid ${col}44`, fontSize: 11, color: col }}
+                  >
+                    {ACTION_ICON[t.action]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-[6px]">
+                      <span className="font-display font-extrabold text-[12px]">{t.symbol}</span>
+                      <span className="font-mono font-bold text-[11px]" style={{ color: col }}>{t.action.replace('_', ' ')}</span>
                     </div>
-                    <div style={{ fontFamily: 'var(--f-mono)', fontSize: 9, color: 'var(--p4)', marginTop: 1 }}>
+                    <div className="font-mono text-muted-foreground text-[11px] mt-[1px]">
                       {new Date(t.time).toLocaleTimeString()}
                     </div>
                   </div>
-                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: t.pct >= 0 ? 'var(--up)' : 'var(--down)', fontWeight: 700 }}>
+                  <div className={cn("font-mono font-bold mono-number text-[11px]", t.pct >= 0 ? "text-up" : "text-down")}>
                     {fmtPct(t.pct)}
                   </div>
                 </div>
