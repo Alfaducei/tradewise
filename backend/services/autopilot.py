@@ -11,7 +11,7 @@ import asyncio
 import logging
 import random
 from datetime import datetime, timezone
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from models.db import AsyncSessionLocal
 from models.agent import AgentState, AgentDecision, PerformanceSnapshot
 from models.database import Watchlist
@@ -55,6 +55,12 @@ async def start_agent() -> dict:
             _start_equity = account["equity"]
         except Exception as e:
             return {"ok": False, "reason": f"Cannot connect to broker: {e}"}
+
+        # Fresh session: wipe old snapshots/decisions so the chart and
+        # decision feed start from a clean slate rather than showing
+        # traces from the previous run (including sim traces after SIM off).
+        await db.execute(delete(PerformanceSnapshot))
+        await db.execute(delete(AgentDecision))
 
         state.is_running = True
         state.started_at = datetime.now(timezone.utc)
@@ -192,12 +198,17 @@ async def update_config(config: dict) -> dict:
 
         demo_now = bool(getattr(state, "demo_mode", False))
 
-    # If demo_mode was toggled (either direction), clear sim state and reset
-    # the tracked starting equity so the next status read / next start pulls
+    # If demo_mode was toggled (either direction), clear sim state + wipe
+    # session history so the chart/decision feed don't show cross-mode
+    # traces, and reset the tracked starting equity so the next read pulls
     # fresh numbers from the correct broker.
     if was_demo != demo_now:
         sim_broker.reset()
         _start_equity = None
+        async with AsyncSessionLocal() as db:
+            await db.execute(delete(PerformanceSnapshot))
+            await db.execute(delete(AgentDecision))
+            await db.commit()
 
     return {"ok": True}
 

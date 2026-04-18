@@ -78,12 +78,22 @@ export default function Autopilot() {
 
       const decisions: any[] = data.recent_decisions ?? []
       const latest = decisions[0]
-      if (latest && latest.id !== prevDecisionId.current) {
+      if (data.is_running && latest && latest.id !== prevDecisionId.current) {
         prevDecisionId.current = latest.id
         triggerBrain(latest)
       }
-      if (!data.is_running) setBrainPhase('idle')
-      else if (brainPhase === 'idle') setBrainPhase('scanning')
+      if (!data.is_running) {
+        // Clear all brain state when agent is stopped so the card doesn't
+        // linger on stale "Analysing..." or a stale BUY decision card.
+        clearTimeout(brainTimer.current)
+        setBrainPhase('idle')
+        setCurrentSymbol(undefined)
+        setStreamText('')
+        setLatestDecision(null)
+        prevDecisionId.current = 0
+      } else if (brainPhase === 'idle') {
+        setBrainPhase('scanning')
+      }
     } catch {}
   }
 
@@ -273,8 +283,19 @@ export default function Autopilot() {
 
   const handleStop = async () => {
     setActionLoading(true)
-    try { await api.post('/autopilot/stop'); setBrainPhase('idle'); setStreamText(''); await load() }
-    finally { setActionLoading(false) }
+    try {
+      await api.post('/autopilot/stop')
+      clearTimeout(brainTimer.current)
+      setBrainPhase('idle')
+      setStreamText('')
+      setCurrentSymbol(undefined)
+      setLatestDecision(null)
+      prevDecisionId.current = 0
+      // Clear the in-memory series traces; next poll will rebuild from empty chart-data
+      seriesMap.current.clear()
+      snapshots.current = []
+      await load()
+    } finally { setActionLoading(false) }
   }
 
   const leaders = [...seriesMap.current.values()]
