@@ -1,4 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { cn } from '@/lib/utils'
+
+// Read a CSS custom property (--color-*) so canvas draws reflect the live theme.
+const cssColor = (token: string): string => {
+  if (typeof window === 'undefined') return '#000'
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(`--color-${token}`)
+    .trim() || '#000'
+}
 
 export type ThinkingPhase =
   | 'idle'
@@ -36,12 +45,12 @@ const PHASE_LABELS: Record<ThinkingPhase, string> = {
 }
 
 const ACTION_COLOR: Record<string, string> = {
-  BUY:        'var(--up)',
-  SELL:       'var(--down)',
-  STOP_LOSS:  'var(--down)',
-  TAKE_PROFIT:'var(--amber)',
-  HOLD:       'var(--sky)',
-  SKIP:       'var(--paper-3)',
+  BUY:        'var(--color-up)',
+  SELL:       'var(--color-down)',
+  STOP_LOSS:  'var(--color-down)',
+  TAKE_PROFIT:'var(--color-amber)',
+  HOLD:       'var(--color-sky)',
+  SKIP:       'var(--color-muted-foreground)',
 }
 
 export function AIBrain({
@@ -57,6 +66,11 @@ export function AIBrain({
     const ctx = canvas.getContext('2d')!
     const W = canvas.width, H = canvas.height
     const cx = W / 2, cy = H / 2
+
+    // Resolve theme colors once per effect run
+    const LIVE = cssColor('live')
+    const UP = cssColor('up')
+    const DOWN = cssColor('down')
 
     function draw() {
       frameRef.current++
@@ -75,7 +89,6 @@ export function AIBrain({
       }
 
       if (phase === 'idle' || !isRunning) {
-        // Idle — soft pulsing core
         const pulse = 0.5 + 0.5 * Math.sin(t * 0.03)
         drawCore(ctx, cx, cy, 12 + pulse * 2, 'rgba(212,255,0,0.15)')
         drawCore(ctx, cx, cy, 6, 'rgba(212,255,0,0.3)')
@@ -85,7 +98,6 @@ export function AIBrain({
       }
 
       if (phase === 'scanning') {
-        // Rotating orbit rings
         const speeds = [0.018, -0.012, 0.008]
         const radii  = [22, 32, 42]
         speeds.forEach((spd, i) => {
@@ -96,14 +108,12 @@ export function AIBrain({
           ctx.beginPath(); ctx.arc(cx, cy, radii[i], 0, Math.PI * 2); ctx.stroke()
           ctx.setLineDash([])
 
-          // Orbit dot
           const dx = cx + Math.cos(angle) * radii[i]
           const dy = cy + Math.sin(angle) * radii[i]
           ctx.fillStyle = `rgba(212,255,0,${0.8 - i * 0.2})`
           ctx.beginPath(); ctx.arc(dx, dy, 2.5 - i * 0.3, 0, Math.PI * 2); ctx.fill()
         })
 
-        // Scan line sweep
         const sweep = (t * 0.02) % (Math.PI * 2)
         ctx.save()
         ctx.translate(cx, cy)
@@ -111,7 +121,6 @@ export function AIBrain({
           ? ctx.createConicGradient(sweep, 0, 0)
           : null
         if (!grad) {
-          // Fallback arc
           ctx.strokeStyle = 'rgba(212,255,0,0.25)'
           ctx.lineWidth = 2
           ctx.beginPath()
@@ -120,16 +129,14 @@ export function AIBrain({
         }
         ctx.restore()
 
-        // Pulsing center
         const p = 0.5 + 0.5 * Math.sin(t * 0.06)
         drawCore(ctx, cx, cy, 8 + p * 3, 'rgba(212,255,0,0.15)')
         drawCore(ctx, cx, cy, 4, 'rgba(212,255,0,0.6)')
-        ctx.fillStyle = 'var(--live)'
+        ctx.fillStyle = LIVE
         ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI * 2); ctx.fill()
       }
 
       if (phase === 'reasoning') {
-        // Synaptic sparks — random arcs
         for (let i = 0; i < 8; i++) {
           const seed = i * 137.5 + t * 0.5
           const a1 = (seed % 360) * Math.PI / 180
@@ -140,46 +147,41 @@ export function AIBrain({
           ctx.lineWidth = 1
           ctx.beginPath(); ctx.arc(cx, cy, r, a1, a2); ctx.stroke()
 
-          // Spark dots at ends
           const ex = cx + Math.cos(a2) * r
           const ey = cy + Math.sin(a2) * r
           ctx.fillStyle = `rgba(212,255,0,${alpha * 1.5})`
           ctx.beginPath(); ctx.arc(ex, ey, 1.5, 0, Math.PI * 2); ctx.fill()
         }
 
-        // Pulsing core — faster
         const p = 0.5 + 0.5 * Math.sin(t * 0.15)
         drawCore(ctx, cx, cy, 10 + p * 4, 'rgba(212,255,0,0.2)')
         drawCore(ctx, cx, cy, 5, 'rgba(212,255,0,0.7)')
-        ctx.fillStyle = '#d4ff00'
+        ctx.fillStyle = LIVE
         ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, Math.PI * 2); ctx.fill()
       }
 
       if (phase === 'deciding') {
-        const actionColor = latestDecision
-          ? (latestDecision.action === 'BUY' ? '#22c55e' : latestDecision.action === 'SELL' ? '#f43f5e' : '#d4ff00')
-          : '#d4ff00'
+        const actionHex = latestDecision
+          ? (latestDecision.action === 'BUY' ? UP : latestDecision.action === 'SELL' ? DOWN : LIVE)
+          : LIVE
 
-        // Decision burst rings
         for (let ring = 0; ring < 3; ring++) {
           const progress = ((t * 0.04 - ring * 0.3) % 1 + 1) % 1
           const r = progress * 45
           const alpha = (1 - progress) * 0.6
-          ctx.strokeStyle = `${actionColor}${Math.round(alpha * 255).toString(16).padStart(2,'0')}`
+          ctx.strokeStyle = `${actionHex}${Math.round(alpha * 255).toString(16).padStart(2,'0')}`
           ctx.lineWidth = 2 - progress
           ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke()
         }
 
-        // Core flash
         const flash = Math.max(0, Math.sin(t * 0.2))
-        drawCore(ctx, cx, cy, 12 + flash * 6, `${actionColor}30`)
-        drawCore(ctx, cx, cy, 6, actionColor + '99')
-        ctx.fillStyle = actionColor
+        drawCore(ctx, cx, cy, 12 + flash * 6, `${actionHex}30`)
+        drawCore(ctx, cx, cy, 6, actionHex + '99')
+        ctx.fillStyle = actionHex
         ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill()
       }
 
       if (phase === 'executing') {
-        // Big ripple
         for (let i = 0; i < 4; i++) {
           const progress = ((t * 0.06 - i * 0.25) % 1 + 1) % 1
           const r = progress * 50
@@ -189,8 +191,7 @@ export function AIBrain({
           ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke()
         }
 
-        // Bright center
-        ctx.fillStyle = '#22c55e'
+        ctx.fillStyle = UP
         ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2); ctx.fill()
         ctx.fillStyle = 'rgba(34,197,94,0.4)'
         ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2); ctx.fill()
@@ -203,87 +204,65 @@ export function AIBrain({
     return () => cancelAnimationFrame(animRef.current)
   }, [phase, isRunning, latestDecision])
 
-  const actionColor = latestDecision ? ACTION_COLOR[latestDecision.action] ?? 'var(--paper-2)' : 'var(--paper-2)'
+  const actionColor = latestDecision ? ACTION_COLOR[latestDecision.action] ?? 'var(--color-muted-foreground)' : 'var(--color-muted-foreground)'
 
   return (
-    <div style={{
-      background: 'var(--ink-1)',
-      border: '1px solid var(--line-sub)',
-      borderRadius: 'var(--r)',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
+    <div className="bg-card border border-white/5 rounded-lg overflow-hidden flex flex-col">
       {/* Top bar */}
-      <div style={{
-        padding: '10px 16px',
-        borderBottom: '1px solid var(--line-sub)',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 7, height: 7, borderRadius: '50%',
-            background: isRunning ? 'var(--live)' : 'var(--paper-4)',
-            boxShadow: isRunning ? '0 0 6px var(--live)' : 'none',
-            animation: isRunning ? 'pulse-live 1.5s infinite' : 'none',
-          }} />
-          <span style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--paper-2)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+      <div className="px-4 py-[10px] border-b border-white/5 flex justify-between items-center">
+        <div className="flex items-center gap-[10px]">
+          <div
+            className={cn(
+              "w-[7px] h-[7px] rounded-full",
+              isRunning ? "bg-primary shadow-[0_0_6px_var(--color-primary)] animate-pulse-live" : "bg-muted-foreground/40"
+            )}
+          />
+          <span
+            className="font-mono text-muted-foreground uppercase"
+            style={{ fontSize: 10, letterSpacing: '0.08em' }}
+          >
             AI Brain
           </span>
           {currentSymbol && (
-            <span style={{ fontFamily: 'var(--f-display)', fontWeight: 800, fontSize: 12, color: 'var(--live)', letterSpacing: '-0.02em' }}>
+            <span
+              className="font-display font-extrabold text-primary"
+              style={{ fontSize: 12, letterSpacing: '-0.02em' }}
+            >
               → {currentSymbol}
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="flex items-center gap-2">
           {cycleCount > 0 && (
-            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 9, color: 'var(--paper-4)' }}>
+            <span className="font-mono text-muted-foreground" style={{ fontSize: 9 }}>
               C{cycleCount}
             </span>
           )}
-          <span style={{
-            fontFamily: 'var(--f-mono)', fontSize: 9, fontWeight: 700,
-            color: isRunning ? 'var(--live)' : 'var(--paper-3)',
-            letterSpacing: '0.1em', textTransform: 'uppercase',
-          }}>
+          <span
+            className={cn(
+              "font-mono font-bold uppercase",
+              isRunning ? "text-primary" : "text-muted-foreground"
+            )}
+            style={{ fontSize: 9, letterSpacing: '0.1em' }}
+          >
             {PHASE_LABELS[phase]}
           </span>
         </div>
       </div>
 
       {/* Canvas + stream side by side */}
-      <div style={{ display: 'flex', gap: 0, flex: 1 }}>
-
+      <div className="flex flex-1">
         {/* Canvas */}
-        <div style={{
-          padding: 16,
-          flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <canvas ref={canvasRef} width={108} height={108}
-            style={{ display: 'block' }} />
+        <div className="p-4 flex-shrink-0 flex items-center justify-center">
+          <canvas ref={canvasRef} width={108} height={108} className="block" />
         </div>
 
         {/* Stream panel */}
-        <div style={{
-          flex: 1, padding: '14px 16px 14px 0',
-          display: 'flex', flexDirection: 'column', gap: 10,
-          minWidth: 0, overflow: 'hidden',
-          borderLeft: '1px solid var(--line-sub)',
-        }}>
-
+        <div className="flex-1 pt-[14px] pr-4 pb-[14px] flex flex-col gap-[10px] min-w-0 overflow-hidden border-l border-white/5">
           {/* Reasoning stream */}
-          <div style={{
-            flex: 1,
-            background: 'var(--ink)',
-            borderRadius: 'var(--r-sm)',
-            padding: '10px 12px',
-            minHeight: 60, maxHeight: 90,
-            overflowY: 'auto',
-          }}>
+          <div className="flex-1 bg-background rounded-sm px-3 py-[10px] min-h-[60px] max-h-[90px] overflow-y-auto">
             {!isRunning && !streamText ? (
-              <span style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--paper-4)' }}>
+              <span className="font-mono text-muted-foreground" style={{ fontSize: 10 }}>
                 Agent not running. Start Autopilot to see AI thinking.
               </span>
             ) : streamText ? (
@@ -292,7 +271,7 @@ export function AIBrain({
                 {(phase === 'reasoning' || phase === 'scanning') && <span className="cursor" />}
               </span>
             ) : (
-              <span style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--paper-4)' }}>
+              <span className="font-mono text-muted-foreground" style={{ fontSize: 10 }}>
                 Waiting for next analysis cycle...
               </span>
             )}
@@ -300,42 +279,43 @@ export function AIBrain({
 
           {/* Latest decision */}
           {latestDecision && latestDecision.action !== 'HOLD' && latestDecision.action !== 'SKIP' && (
-            <div className="decision-card" style={{
-              padding: '8px 12px',
-              background: 'var(--ink)',
-              borderRadius: 'var(--r-sm)',
-              borderLeft: `3px solid ${actionColor}`,
-              display: 'flex', flexDirection: 'column', gap: 5,
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontFamily: 'var(--f-display)', fontWeight: 800, fontSize: 13, color: actionColor }}>
+            <div
+              className="decision-card px-3 py-2 bg-background rounded-sm flex flex-col gap-[5px]"
+              style={{ borderLeft: `3px solid ${actionColor}` }}
+            >
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-[6px]">
+                  <span
+                    className="font-display font-extrabold"
+                    style={{ fontSize: 13, color: actionColor }}
+                  >
                     {latestDecision.action}
                   </span>
-                  <span style={{ fontFamily: 'var(--f-display)', fontWeight: 700, fontSize: 13 }}>
+                  <span className="font-display font-bold" style={{ fontSize: 13 }}>
                     {latestDecision.symbol}
                   </span>
                   {latestDecision.quantity && latestDecision.price && (
-                    <span style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--paper-2)' }}>
+                    <span className="font-mono text-muted-foreground" style={{ fontSize: 10 }}>
                       ×{latestDecision.quantity} @ ${latestDecision.price.toFixed(2)}
                     </span>
                   )}
                 </div>
-                <span style={{
-                  fontFamily: 'var(--f-mono)', fontSize: 10, fontWeight: 700,
-                  color: actionColor,
-                }}>
+                <span
+                  className="font-mono font-bold"
+                  style={{ fontSize: 10, color: actionColor }}
+                >
                   {Math.round((latestDecision.confidence ?? 0) * 100)}%
                 </span>
               </div>
               {/* Confidence bar */}
-              <div style={{ height: 2, background: 'var(--ink-3)', borderRadius: 1 }}>
-                <div style={{
-                  height: '100%', borderRadius: 1,
-                  width: `${(latestDecision.confidence ?? 0) * 100}%`,
-                  background: actionColor,
-                  transition: 'width 0.4s ease',
-                }} />
+              <div className="h-[2px] bg-accent rounded-[1px]">
+                <div
+                  className="h-full rounded-[1px] transition-[width] duration-[400ms] ease-out"
+                  style={{
+                    width: `${(latestDecision.confidence ?? 0) * 100}%`,
+                    background: actionColor,
+                  }}
+                />
               </div>
             </div>
           )}
