@@ -157,7 +157,7 @@ export default function Setpoints({ config, onSave }: SetpointsProps) {
                       : "bg-popover hover:border-white/15"
                   )}
                   style={{
-                    border: `1px solid ${isOpen ? param.color : 'var(--line-sub)'}`,
+                    border: `1px solid ${isOpen ? param.color : 'rgb(255 255 255 / 0.05)'}`,
                   }}
                 >
                   {/* Header */}
@@ -272,7 +272,7 @@ export default function Setpoints({ config, onSave }: SetpointsProps) {
                         style={{
                           fontSize: 11,
                           background: isActive ? `${param.color}18` : undefined,
-                          border: `1px solid ${isActive ? param.color : 'var(--line-sub)'}`,
+                          border: `1px solid ${isActive ? param.color : 'rgb(255 255 255 / 0.05)'}`,
                           color: isActive ? param.color : undefined,
                         }}
                       >
