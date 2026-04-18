@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { Users, Eye, DollarSign, TrendingUp, ExternalLink } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const api = axios.create({ baseURL: '/api' })
 const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n)
@@ -19,7 +20,7 @@ export default function AdminDashboard() {
   }, [])
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: 'var(--text-2)', fontFamily: 'var(--font-mono)' }}>
+    <div className="flex items-center justify-center flex-1 text-muted-foreground font-mono">
       LOADING...
     </div>
   )
@@ -29,34 +30,32 @@ export default function AdminDashboard() {
   const t = data?.trading || {}
 
   return (
-    <div className="fade-in" style={{ padding: 28, flex: 1, overflowY: 'auto' }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600 }}>Admin Dashboard</h1>
-        <p style={{ color: 'var(--text-2)', fontSize: 13, marginTop: 4 }}>Visitors · Donations · Trade stats</p>
+    <div className="fade-in p-7 flex-1 overflow-y-auto">
+      <div className="mb-6">
+        <h1 className="text-[22px] font-semibold">Admin Dashboard</h1>
+        <p className="text-muted-foreground text-[13px] mt-1">Visitors · Donations · Trade stats</p>
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div className="grid grid-cols-4 gap-3 mb-6">
         <Stat icon={<Eye size={14} />} label="Total Pageviews" value={fmt(v.total_pageviews || 0)} />
         <Stat icon={<Users size={14} />} label="Unique Today" value={fmt(v.unique_today || 0)} accent />
         <Stat icon={<Users size={14} />} label="Unique This Week" value={fmt(v.unique_this_week || 0)} />
         <Stat icon={<Users size={14} />} label="Unique This Month" value={fmt(v.unique_this_month || 0)} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div className="grid grid-cols-3 gap-3 mb-6">
         <Stat icon={<DollarSign size={14} />} label="Total Donations" value={fmtUSD(d.total_usd || 0)} accent />
         <Stat icon={<DollarSign size={14} />} label="Donation Count" value={fmt(d.donation_count || 0)} />
         <Stat icon={<TrendingUp size={14} />} label="AI Approval Rate" value={`${t.approval_rate || 0}%`} />
       </div>
 
       {/* Two column */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        {/* Top pages */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <Table
           title="Top Pages (30d)"
           columns={['Path', 'Views']}
           rows={(data?.top_pages || []).map((p: any) => [p.path, fmt(p.views)])}
         />
-        {/* Top referrers */}
         <Table
           title="Top Referrers (30d)"
           columns={['Source', 'Visits']}
@@ -68,24 +67,24 @@ export default function AdminDashboard() {
       </div>
 
       {/* Recent donations */}
-      <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border)' }}>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600 }}>
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="px-5 py-[14px] border-b border-border text-[13px] font-semibold">
           Recent Donations
         </div>
         {(d.recent || []).length === 0 ? (
-          <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+          <div className="p-8 text-center text-muted-foreground font-mono text-xs">
             NO DONATIONS YET — share the app!
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="w-full border-collapse">
             <tbody>
               {(d.recent || []).map((don: any, i: number) => (
-                <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '12px 20px', fontFamily: 'var(--font-mono)', color: 'var(--accent)', fontWeight: 700 }}>
+                <tr key={i} className="border-b border-border">
+                  <td className="px-5 py-3 font-mono text-primary font-bold">
                     {don.amount ? fmtUSD(don.amount) : '—'}
                   </td>
-                  <td style={{ padding: '12px 20px', fontSize: 13, color: 'var(--text-1)' }}>{don.message || '(no message)'}</td>
-                  <td style={{ padding: '12px 20px', fontSize: 12, color: 'var(--text-2)', fontFamily: 'var(--font-mono)' }}>
+                  <td className="px-5 py-3 text-[13px] text-foreground">{don.message || '(no message)'}</td>
+                  <td className="px-5 py-3 text-xs text-muted-foreground font-mono">
                     {new Date(don.at).toLocaleDateString()}
                   </td>
                 </tr>
@@ -96,21 +95,22 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick links */}
-      <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
+      <div className="mt-5 flex gap-[10px]">
         {[
           ['Buy Me a Coffee', 'https://buymeacoffee.com/tradewise'],
           ['Reddit — r/algotrading', 'https://reddit.com/r/algotrading'],
           ['Product Hunt', 'https://producthunt.com'],
         ].map(([label, url]) => (
-          <a key={label} href={url} target="_blank" rel="noopener noreferrer"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '7px 14px', border: '1px solid var(--border)',
-              color: 'var(--text-2)', fontSize: 12, fontFamily: 'var(--font-mono)',
-              textDecoration: 'none', transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-2)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
+          <a
+            key={label}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "flex items-center gap-[6px] px-[14px] py-[7px] border border-border rounded-sm no-underline",
+              "text-muted-foreground font-mono text-xs transition-colors",
+              "hover:text-primary hover:border-primary"
+            )}
           >
             <ExternalLink size={11} /> {label}
           </a>
@@ -122,36 +122,57 @@ export default function AdminDashboard() {
 
 function Stat({ icon, label, value, accent }: { icon: React.ReactNode, label: string, value: string, accent?: boolean }) {
   return (
-    <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border)', padding: '16px 20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</span>
-        <span style={{ color: 'var(--text-3)' }}>{icon}</span>
+    <div className="bg-card border border-border px-5 py-4 rounded-lg">
+      <div className="flex justify-between mb-[10px]">
+        <span
+          className="font-mono text-muted-foreground uppercase"
+          style={{ fontSize: 11, letterSpacing: '0.06em' }}
+        >
+          {label}
+        </span>
+        <span className="text-muted-foreground">{icon}</span>
       </div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, color: accent ? 'var(--accent)' : 'var(--text-0)' }}>{value}</div>
+      <div className={cn("font-mono text-[22px] font-bold mono-number", accent ? "text-primary" : "text-foreground")}>
+        {value}
+      </div>
     </div>
   )
 }
 
 function Table({ title, columns, rows }: { title: string, columns: string[], rows: string[][] }) {
   return (
-    <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border)' }}>
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600 }}>{title}</div>
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="px-5 py-[14px] border-b border-border text-[13px] font-semibold">{title}</div>
       {rows.length === 0 ? (
-        <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>NO DATA</div>
+        <div className="p-6 text-center text-muted-foreground font-mono text-[11px]">NO DATA</div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className="w-full border-collapse">
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+            <tr className="border-b border-border">
               {columns.map(c => (
-                <th key={c} style={{ padding: '8px 20px', textAlign: 'left', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{c}</th>
+                <th
+                  key={c}
+                  className="px-5 py-2 text-left font-mono text-muted-foreground uppercase"
+                  style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em' }}
+                >
+                  {c}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+              <tr key={i} className="border-b border-border">
                 {row.map((cell, j) => (
-                  <td key={j} style={{ padding: '10px 20px', fontSize: 12, color: j === 0 ? 'var(--text-1)' : 'var(--accent)', fontFamily: j > 0 ? 'var(--font-mono)' : 'var(--font-sans)' }}>{cell}</td>
+                  <td
+                    key={j}
+                    className={cn(
+                      "px-5 py-[10px] text-xs",
+                      j === 0 ? "text-foreground font-sans" : "text-primary font-mono"
+                    )}
+                  >
+                    {cell}
+                  </td>
                 ))}
               </tr>
             ))}
