@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 _agent_task: asyncio.Task | None = None
 _start_equity: float | None = None
+_stop_requested: bool = False  # set by stop_agent; cycle bails at the next check
 
 
 def _broker(demo: bool):
@@ -31,10 +32,14 @@ def _broker(demo: bool):
     return sim_broker if demo else alpaca_client
 
 
+def _should_stop() -> bool:
+    return _stop_requested
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 async def start_agent() -> dict:
-    global _agent_task, _start_equity
+    global _agent_task, _start_equity, _stop_requested
 
     async with AsyncSessionLocal() as db:
         state = await _get_or_create_state(db)
@@ -57,25 +62,45 @@ async def start_agent() -> dict:
         state.cycle_count = 0
         await db.commit()
 
+    _stop_requested = False
     _agent_task = asyncio.create_task(_run_loop())
     logger.info(f"Autopilot agent started (demo_mode={demo})")
     return {"ok": True, "message": "Agent started", "start_equity": _start_equity, "demo_mode": demo}
 
 
 async def stop_agent() -> dict:
-    global _agent_task
+    """Signal the loop to stop, cancel the task, then flip DB state.
 
-    if _agent_task:
-        _agent_task.cancel()
-        _agent_task = None
+    The cycle body checks `_should_stop()` at every major step so an in-flight
+    scan doesn't execute trades after the stop button is pressed.
+    """
+    global _agent_task, _stop_requested, _start_equity
+
+    _stop_requested = True
+    task = _agent_task
+    _agent_task = None
 
     async with AsyncSessionLocal() as db:
         state = await _get_or_create_state(db)
+        was_running = bool(state.is_running)
+        was_demo = bool(getattr(state, "demo_mode", False))
         state.is_running = False
         state.stopped_at = datetime.now(timezone.utc)
         await db.commit()
 
-    logger.info("Autopilot agent stopped")
+    if task and not task.done():
+        task.cancel()
+        try:
+            await task
+        except (asyncio.CancelledError, Exception):
+            pass
+
+    # Reset sim state on stop so a fresh sim run starts clean next time
+    if was_demo:
+        sim_broker.reset()
+    _start_equity = None
+
+    logger.info(f"Autopilot agent stopped (was_running={was_running}, was_demo={was_demo})")
     return {"ok": True, "message": "Agent stopped"}
 
 
@@ -148,17 +173,32 @@ async def get_agent_status() -> dict:
 
 
 async def update_config(config: dict) -> dict:
+    global _start_equity
+
     async with AsyncSessionLocal() as db:
         state = await _get_or_create_state(db)
+        was_demo = bool(getattr(state, "demo_mode", False))
+
         # If turning demo on, auto-shorten the cycle so the UI looks alive
         # (unless the caller explicitly set a cycle in the same request).
         if config.get("demo_mode") is True and "cycle_interval_seconds" not in config:
             if state.cycle_interval_seconds > 60:
                 state.cycle_interval_seconds = 60
+
         for key, val in config.items():
             if hasattr(state, key):
                 setattr(state, key, val)
         await db.commit()
+
+        demo_now = bool(getattr(state, "demo_mode", False))
+
+    # If demo_mode was toggled (either direction), clear sim state and reset
+    # the tracked starting equity so the next status read / next start pulls
+    # fresh numbers from the correct broker.
+    if was_demo != demo_now:
+        sim_broker.reset()
+        _start_equity = None
+
     return {"ok": True}
 
 
@@ -168,6 +208,9 @@ async def _run_loop():
     global _start_equity
     logger.info("Autopilot loop running")
     while True:
+        if _should_stop():
+            logger.info("Autopilot loop: stop requested, exiting")
+            break
         try:
             await _run_cycle()
         except asyncio.CancelledError:
@@ -180,10 +223,23 @@ async def _run_loop():
             state = await _get_or_create_state(db)
             interval = state.cycle_interval_seconds
 
-        await asyncio.sleep(interval)
+        # Chunked sleep so a stop request is honored within ~2s even if
+        # the configured interval is 60s+.
+        try:
+            remaining = interval
+            while remaining > 0 and not _should_stop():
+                chunk = min(2.0, remaining)
+                await asyncio.sleep(chunk)
+                remaining -= chunk
+        except asyncio.CancelledError:
+            logger.info("Autopilot loop cancelled during sleep")
+            break
 
 
 async def _run_cycle():
+    if _should_stop():
+        return
+
     async with AsyncSessionLocal() as db:
         state = await _get_or_create_state(db)
         state.cycle_count += 1
@@ -252,10 +308,18 @@ async def _run_cycle():
     # ── Step 3: Scan the market for top candidates ────────────────────────────
     # Replaces the old "watchlist only" logic: screen ~200 stocks + crypto with
     # cheap technicals, pass the top N to the deeper analyzer (AI or sim).
+    if _should_stop():
+        logger.info(f"[Cycle {cycle}] Stop requested before scan — bailing")
+        return
+
     held_symbols = {p["symbol"] for p in trades}
     shortlist_size = max(20, config["max_trades"] * 4)
     try:
-        scan = scan_universe(top_n=shortlist_size)
+        # Run the ~2-3s synchronous scan in a thread so the event loop
+        # can respond to cancel() while the scan is in flight.
+        scan = await asyncio.to_thread(scan_universe, shortlist_size)
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.warning(f"[Cycle {cycle}] Scanner failed, falling back to watchlist: {e}")
         async with AsyncSessionLocal() as db:
@@ -268,6 +332,9 @@ async def _run_cycle():
     max_trade_value = equity * config["max_trade_pct"]
 
     for symbol in candidates:
+        if _should_stop():
+            logger.info(f"[Cycle {cycle}] Stop requested mid-loop — bailing at {symbol}")
+            return
         if len(trades) + 1 > config["max_trades"]:
             break
 
