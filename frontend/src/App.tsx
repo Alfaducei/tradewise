@@ -12,7 +12,6 @@ import Admin from './pages/Admin'
 import Donate from './pages/Donate'
 import FeedbackPage from './pages/Feedback'
 import Autopilot from './pages/Autopilot'
-import PortfolioRace from './pages/PortfolioRace'
 import './index.css'
 
 function PageTracker() {
@@ -44,7 +43,6 @@ export default function App() {
               <Route path="/donate" element={<Donate />} />
               <Route path="/feedback" element={<FeedbackPage />} />
             <Route path="/autopilot" element={<Autopilot />} />
-            <Route path="/race" element={<PortfolioRace />} />
             </Routes>
           </main>
         </div>

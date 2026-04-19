@@ -43,7 +43,11 @@ export default function Autopilot() {
   const [actionLoading, setActionLoading] = useState(false)
   const [showConfig, setShowConfig] = useState(false)
   const [config, setConfig] = useState<any>({})
-  const [agreed, setAgreed] = useState(false)
+  // Disclaimer agreement persists across navigation + reload so the user
+  // only sees the "Autopilot Disclaimer" modal once.
+  const [agreed, setAgreed] = useState(() => {
+    try { return localStorage.getItem('tw-autopilot-agreed') === '1' } catch { return false }
+  })
   const [showDisclaimer, setShowDisclaimer] = useState(false)
 
   // AI Brain
@@ -381,7 +385,15 @@ export default function Autopilot() {
             </ul>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setShowDisclaimer(false)}>Cancel</Button>
-              <Button className="flex-1" onClick={() => { setAgreed(true); setShowDisclaimer(false); setTimeout(handleStart, 100) }}>Start</Button>
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  try { localStorage.setItem('tw-autopilot-agreed', '1') } catch {}
+                  setAgreed(true)
+                  setShowDisclaimer(false)
+                  setTimeout(handleStart, 100)
+                }}
+              >Start</Button>
             </div>
           </div>
         </div>

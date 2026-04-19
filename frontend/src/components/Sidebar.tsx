@@ -16,7 +16,6 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
       { to: '/',                icon: ICON.dashboard, label: 'Dashboard',  key: 'dashboard' },
       { to: '/recommendations', icon: ICON.signals,   label: 'Signals',    key: 'signals' },
       { to: '/autopilot',       icon: ICON.autopilot, label: 'Autopilot',  key: 'autopilot' },
-      { to: '/race',            icon: ICON.race,      label: 'Live Race',  key: 'race' },
     ],
   },
   {
