@@ -81,43 +81,43 @@ export default function Recommendations() {
   return (
     <div className="fade-in p-7 flex-1 overflow-y-auto">
       {toast && (
-        <div className="fixed top-5 right-5 z-[999] bg-accent border border-primary/40 rounded-lg px-5 py-3 font-mono text-xs text-primary animate-fade-up">
+        <div className="fixed top-5 right-5 z-[999] bg-accent border border-primary/40 rounded-lg px-5 py-3 text-sm text-primary animate-fade-up">
           {toast}
         </div>
       )}
 
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <Radio aria-hidden className="h-6 w-6 text-foreground" />
-          <h1 className="text-[22px] font-semibold">AI Signals</h1>
+          <Radio aria-hidden className="h-6 w-6 text-muted-foreground" />
+          <h1 className="text-2xl font-semibold">AI signals</h1>
         </div>
-        <p className="text-muted-foreground text-[13px] mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           AI analyzes your watchlist every 30 min. You decide what to execute.
         </p>
       </div>
 
       {/* Manual analyze */}
       <div className="flex gap-2 mb-6 bg-card border border-border p-4 rounded-lg">
-        <Brain size={16} className="text-primary mt-[9px] flex-shrink-0" />
+        <Brain className="h-4 w-4 text-muted-foreground mt-[9px] flex-shrink-0" />
         <input
           value={symbol}
           onChange={e => setSymbol(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleAnalyze()}
           placeholder="Enter symbol (AAPL, BTC/USD...)"
-          className="flex-1 bg-background border border-border px-3 py-2 text-foreground text-[13px] font-mono rounded-sm"
+          className="flex-1 bg-background border border-border px-3 py-2 text-foreground text-sm rounded-sm"
         />
-        <Button onClick={handleAnalyze} disabled={analyzing || !symbol.trim()} className="font-mono uppercase gap-1">
-          {analyzing ? 'ANALYZING...' : 'ANALYZE'}
+        <Button onClick={handleAnalyze} disabled={analyzing || !symbol.trim()}>
+          {analyzing ? 'Analyzing...' : 'Analyze'}
         </Button>
       </div>
 
       {/* Pending signals */}
       {loading ? (
-        <div className="text-muted-foreground font-mono text-xs">LOADING SIGNALS...</div>
+        <div className="text-sm text-muted-foreground">Loading signals...</div>
       ) : recs.length === 0 ? (
-        <div className="text-center px-5 py-14 border border-border bg-card text-muted-foreground font-mono text-xs rounded-lg">
-          NO PENDING SIGNALS<br />
-          <span className="text-muted-foreground mt-2 block" style={{ fontSize: 11 }}>
+        <div className="text-center px-5 py-14 border border-border bg-card text-sm text-muted-foreground rounded-lg">
+          No pending signals<br />
+          <span className="text-muted-foreground mt-2 block text-xs">
             AI auto-analyzes watchlist every 30 min, or analyze a symbol manually above
           </span>
         </div>
@@ -156,27 +156,27 @@ function RecCard({ rec, loading, onApprove, onDismiss }: {
       {/* Header */}
       <div className="flex justify-between items-start mb-[14px]">
         <div className="flex items-center gap-3">
-          <span className="font-mono font-bold text-[18px]">{rec.symbol}</span>
+          <span className="font-semibold text-lg">{rec.symbol}</span>
           <Badge variant={isBuy ? 'buy' : 'sell'}>{rec.action}</Badge>
           <Badge variant={riskVariant}>{rec.risk_level} risk</Badge>
         </div>
-        <span className="font-mono text-[11px] text-muted-foreground">
+        <span className="text-xs text-muted-foreground tabular-nums">
           {new Date(rec.created_at).toLocaleTimeString()}
         </span>
       </div>
 
       {/* Trade details */}
       <div className="grid grid-cols-3 gap-3 mb-[14px] bg-popover px-4 py-3 rounded-sm">
-        <Detail label="Quantity" value={`${rec.quantity} units`} mono />
-        <Detail label="Signal Price" value={fmtUSD(rec.price_at_signal)} mono />
-        <Detail label="Total Value" value={fmtUSD(totalValue)} mono highlight />
+        <Detail label="Quantity" value={`${rec.quantity} units`} />
+        <Detail label="Signal price" value={fmtUSD(rec.price_at_signal)} />
+        <Detail label="Total value" value={fmtUSD(totalValue)} highlight />
       </div>
 
       {/* Confidence bar */}
       <div className="mb-[14px]">
         <div className="flex justify-between mb-[6px]">
-          <span className="section-label">AI CONFIDENCE</span>
-          <span className="font-mono font-bold" style={{ fontSize: 11, color: actionColor, letterSpacing: '0.06em' }}>
+          <span className="text-sm font-medium text-muted-foreground">AI confidence</span>
+          <span className="text-sm font-semibold tabular-nums" style={{ color: actionColor }}>
             {Math.round(rec.confidence * 100)}%
           </span>
         </div>
@@ -190,31 +190,31 @@ function RecCard({ rec, loading, onApprove, onDismiss }: {
 
       {/* Reasoning */}
       <div
-        className="px-[14px] py-3 bg-background border border-border mb-4 text-[13px] text-foreground leading-[1.6]"
+        className="px-[14px] py-3 bg-background border border-border mb-4 text-sm text-foreground leading-[1.6]"
         style={{ borderLeft: `3px solid ${actionColor}` }}
       >
-        <Brain size={12} className="text-muted-foreground mr-2 inline" />
+        <Brain className="h-3 w-3 text-muted-foreground mr-2 inline" />
         {rec.reasoning}
       </div>
 
       {/* Warning + Actions */}
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-[6px] text-muted-foreground text-[11px]">
-          <AlertTriangle size={11} />
+        <div className="flex items-center gap-[6px] text-xs text-muted-foreground">
+          <AlertTriangle className="h-3 w-3" />
           <span>Paper trade only — not financial advice</span>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={onDismiss} disabled={loading} className="gap-[6px]">
-            <X size={13} /> Dismiss
+            <X className="h-4 w-4" /> Dismiss
           </Button>
           <Button
             size="sm"
             onClick={onApprove}
             disabled={loading}
             variant={isBuy ? 'default' : 'destructive'}
-            className={cn("font-mono uppercase gap-[6px]")}
+            className="gap-[6px]"
           >
-            <Check size={13} /> {loading ? 'EXECUTING...' : 'EXECUTE TRADE'}
+            <Check className="h-4 w-4" /> {loading ? 'Executing...' : 'Execute trade'}
           </Button>
         </div>
       </div>
@@ -222,14 +222,13 @@ function RecCard({ rec, loading, onApprove, onDismiss }: {
   )
 }
 
-function Detail({ label, value, mono, highlight }: { label: string, value: string, mono?: boolean, highlight?: boolean }) {
+function Detail({ label, value, highlight }: { label: string, value: string, highlight?: boolean }) {
   return (
     <div>
-      <div className="section-label mb-1">{label}</div>
+      <div className="text-sm font-medium text-muted-foreground mb-1">{label}</div>
       <div
         className={cn(
-          "text-[14px] font-semibold",
-          mono ? "font-mono mono-number" : "font-sans",
+          "text-sm font-semibold tabular-nums",
           highlight ? "text-primary" : "text-foreground"
         )}
       >

@@ -12,9 +12,11 @@ import {
   BarChart3,
   MessageSquare,
   Heart,
+  AlertTriangle,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -81,10 +83,7 @@ export default function Sidebar() {
 
       {/* Mode toggle */}
       <div className="px-3 py-[10px] border-b border-white/5">
-        <div
-          className="font-mono text-muted-foreground uppercase mb-[7px]"
-          style={{ fontSize: 11, letterSpacing: '0.1em' }}
-        >
+        <div className="text-sm font-medium text-muted-foreground mb-[7px]">
           Mode
         </div>
         <div className="flex gap-1">
@@ -96,7 +95,8 @@ export default function Sidebar() {
                 key={m}
                 onClick={() => isLiveBtn ? confirmLive(setMode) : setMode('paper')}
                 className={cn(
-                  "flex-1 py-[5px] rounded-sm border font-mono font-bold uppercase",
+                  "flex-1 py-[5px] rounded-sm border text-xs font-medium",
+                  "inline-flex items-center justify-center gap-1.5",
                   "transition-colors",
                   active
                     ? isLiveBtn
@@ -104,19 +104,22 @@ export default function Sidebar() {
                       : "bg-primary/10 border-primary/35 text-primary"
                     : "bg-popover border-white/5 text-muted-foreground"
                 )}
-                style={{ fontSize: 11, letterSpacing: '0.07em' }}
               >
-                {isLiveBtn ? '● LIVE' : '○ PAPER'}
+                <span
+                  className={cn(
+                    "inline-block h-2 w-2 rounded-full",
+                    isLiveBtn ? "bg-current" : "border border-current"
+                  )}
+                />
+                {isLiveBtn ? 'Live' : 'Paper'}
               </button>
             )
           })}
         </div>
         {isLive && (
-          <div
-            className="mt-[7px] px-2 py-[5px] bg-down/10 border border-down/25 rounded-sm font-mono text-down leading-[1.5]"
-            style={{ fontSize: 11 }}
-          >
-            ⚠ REAL MONEY ACTIVE
+          <div className="mt-[7px] px-2 py-[5px] bg-down/10 border border-down/25 rounded-sm text-down text-xs font-medium inline-flex items-center gap-1.5">
+            <AlertTriangle className="h-4 w-4" />
+            REAL MONEY ACTIVE
           </div>
         )}
       </div>
@@ -125,10 +128,7 @@ export default function Sidebar() {
       <div className="flex-1 py-3 overflow-y-auto">
         {SECTIONS.map((section, si) => (
           <div key={section.title} className={cn(si > 0 && "mt-4")}>
-            <div
-              className="px-[18px] mb-[6px] font-mono text-muted-foreground uppercase"
-              style={{ fontSize: 11, letterSpacing: '0.14em', opacity: 0.6 }}
-            >
+            <div className="px-[18px] mb-[6px] text-sm font-medium text-muted-foreground">
               {section.title}
             </div>
             {section.items.map(({ to, icon: Icon, label, key }) => (
@@ -158,10 +158,9 @@ export default function Sidebar() {
                     {key === 'signals' && signalCount > 0 && (
                       <span
                         className={cn(
-                          "font-mono font-bold rounded-sm px-[6px] py-[1px]",
+                          "text-xs font-semibold tabular-nums rounded-sm px-[6px] py-[1px]",
                           isActive ? "bg-primary/20 text-primary" : "bg-primary/15 text-primary"
                         )}
-                        style={{ fontSize: 11, letterSpacing: '0.02em' }}
                       >
                         {signalCount}
                       </span>
@@ -183,19 +182,22 @@ export default function Sidebar() {
           className={cn(
             "flex items-center justify-center gap-[6px] py-2 rounded-lg no-underline",
             "bg-primary/10 border border-primary/20 text-primary",
-            "font-display font-bold text-[11.5px] transition-colors",
+            "text-sm font-semibold transition-colors",
             "hover:bg-primary/20"
           )}
-          style={{ letterSpacing: '0.01em' }}
         >
-          ♥ Support TradeWise
+          <Heart className="h-4 w-4 fill-current" />
+          Support TradeWise
         </a>
-        <p
-          className="text-center text-muted-foreground mt-[6px] leading-[1.4]"
-          style={{ fontSize: 11 }}
-        >
+        <p className="text-center text-xs text-muted-foreground mt-[6px] leading-[1.4]">
           Free forever. Only donate if you profit.
         </p>
+      </div>
+
+      {/* Theme toggle */}
+      <div className="pt-4 border-t border-border px-4 pb-4 flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">Theme</span>
+        <ThemeToggle />
       </div>
     </nav>
   )

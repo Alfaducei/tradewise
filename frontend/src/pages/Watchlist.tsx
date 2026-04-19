@@ -63,17 +63,17 @@ export default function Watchlist() {
   return (
     <div className="fade-in p-7 flex-1 overflow-y-auto">
       {toast && (
-        <div className="fixed top-5 right-5 z-[999] bg-accent border border-primary/40 rounded-lg px-5 py-3 font-mono text-xs text-primary">
+        <div className="fixed top-5 right-5 z-[999] bg-accent border border-primary/40 rounded-lg px-5 py-3 text-sm text-primary">
           {toast}
         </div>
       )}
 
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <Eye aria-hidden className="h-6 w-6 text-foreground" />
-          <h1 className="text-[22px] font-semibold">Watchlist</h1>
+          <Eye aria-hidden className="h-6 w-6 text-muted-foreground" />
+          <h1 className="text-2xl font-semibold">Watchlist</h1>
         </div>
-        <p className="text-muted-foreground text-[13px] mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Assets the AI monitors automatically. Analyze any on demand.
         </p>
       </div>
@@ -85,18 +85,18 @@ export default function Watchlist() {
           onChange={e => setSymbol(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleAdd()}
           placeholder="Symbol (AAPL, MSFT, BTC/USD...)"
-          className="flex-1 bg-background border border-border px-3 py-2 text-foreground text-[13px] font-mono rounded-sm"
+          className="flex-1 bg-background border border-border px-3 py-2 text-foreground text-sm rounded-sm"
         />
         <select
           value={assetClass}
           onChange={e => setAssetClass(e.target.value)}
-          className="bg-background border border-border px-3 py-2 text-foreground text-[13px] font-mono rounded-sm"
+          className="bg-background border border-border px-3 py-2 text-foreground text-sm rounded-sm"
         >
           <option value="stock">Stock</option>
           <option value="crypto">Crypto</option>
         </select>
-        <Button onClick={handleAdd} disabled={adding || !symbol.trim()} className="font-mono uppercase gap-[6px]">
-          <Plus size={14} /> ADD
+        <Button onClick={handleAdd} disabled={adding || !symbol.trim()} className="gap-[6px]">
+          <Plus className="h-4 w-4" /> Add
         </Button>
       </div>
 
@@ -106,8 +106,8 @@ export default function Watchlist() {
           <div key={item.id} className="bg-card border border-border p-4 flex flex-col gap-3 rounded-lg">
             <div className="flex justify-between items-start">
               <div>
-                <div className="font-mono font-bold text-[15px]">{item.symbol}</div>
-                <div className="text-muted-foreground mt-[2px] uppercase" style={{ fontSize: 11, letterSpacing: '0.04em' }}>
+                <div className="font-semibold text-base">{item.symbol}</div>
+                <div className="text-muted-foreground mt-[2px] text-xs capitalize">
                   {item.asset_class}
                 </div>
               </div>
@@ -115,21 +115,20 @@ export default function Watchlist() {
                 onClick={() => handleRemove(item.symbol)}
                 className="bg-transparent text-muted-foreground p-1 hover:text-down flex items-center transition-colors"
               >
-                <Trash2 size={13} />
+                <Trash2 className="h-4 w-4" />
               </button>
             </div>
             <button
               onClick={() => handleAnalyze(item.symbol)}
               disabled={analyzing === item.symbol}
               className={cn(
-                "w-full py-[7px] bg-transparent border border-border text-foreground font-mono uppercase rounded-sm",
+                "w-full py-[7px] bg-transparent border border-border text-foreground text-sm font-medium rounded-sm",
                 "flex items-center justify-center gap-[6px] transition-colors",
                 "hover:border-primary hover:text-primary"
               )}
-              style={{ fontSize: 11, letterSpacing: '0.06em' }}
             >
-              <Zap size={11} />
-              {analyzing === item.symbol ? 'ANALYZING...' : 'ANALYZE NOW'}
+              <Zap className="h-4 w-4" />
+              {analyzing === item.symbol ? 'Analyzing...' : 'Analyze now'}
             </button>
           </div>
         ))}

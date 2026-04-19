@@ -20,8 +20,8 @@ export default function AdminDashboard() {
   }, [])
 
   if (loading) return (
-    <div className="flex items-center justify-center flex-1 text-muted-foreground font-mono">
-      LOADING...
+    <div className="flex items-center justify-center flex-1 text-muted-foreground">
+      Loading...
     </div>
   )
 
@@ -33,34 +33,34 @@ export default function AdminDashboard() {
     <div className="fade-in p-7 flex-1 overflow-y-auto">
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <BarChart3 aria-hidden className="h-6 w-6 text-foreground" />
-          <h1 className="text-[22px] font-semibold">Admin Dashboard</h1>
+          <BarChart3 aria-hidden className="h-6 w-6 text-muted-foreground" />
+          <h1 className="text-2xl font-semibold">Admin dashboard</h1>
         </div>
-        <p className="text-muted-foreground text-[13px] mt-1">Visitors · Donations · Trade stats</p>
+        <p className="text-sm text-muted-foreground mt-1">Visitors · Donations · Trade stats</p>
       </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-4 gap-3 mb-6">
-        <Stat icon={<Eye size={14} />} label="Total Pageviews" value={fmt(v.total_pageviews || 0)} />
-        <Stat icon={<Users size={14} />} label="Unique Today" value={fmt(v.unique_today || 0)} accent />
-        <Stat icon={<Users size={14} />} label="Unique This Week" value={fmt(v.unique_this_week || 0)} />
-        <Stat icon={<Users size={14} />} label="Unique This Month" value={fmt(v.unique_this_month || 0)} />
+        <Stat icon={<Eye className="h-4 w-4" />} label="Total pageviews" value={fmt(v.total_pageviews || 0)} />
+        <Stat icon={<Users className="h-4 w-4" />} label="Unique today" value={fmt(v.unique_today || 0)} accent />
+        <Stat icon={<Users className="h-4 w-4" />} label="Unique this week" value={fmt(v.unique_this_week || 0)} />
+        <Stat icon={<Users className="h-4 w-4" />} label="Unique this month" value={fmt(v.unique_this_month || 0)} />
       </div>
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <Stat icon={<DollarSign size={14} />} label="Total Donations" value={fmtUSD(d.total_usd || 0)} accent />
-        <Stat icon={<DollarSign size={14} />} label="Donation Count" value={fmt(d.donation_count || 0)} />
-        <Stat icon={<TrendingUp size={14} />} label="AI Approval Rate" value={`${t.approval_rate || 0}%`} />
+        <Stat icon={<DollarSign className="h-4 w-4" />} label="Total donations" value={fmtUSD(d.total_usd || 0)} accent />
+        <Stat icon={<DollarSign className="h-4 w-4" />} label="Donation count" value={fmt(d.donation_count || 0)} />
+        <Stat icon={<TrendingUp className="h-4 w-4" />} label="AI approval rate" value={`${t.approval_rate || 0}%`} />
       </div>
 
       {/* Two column */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <Table
-          title="Top Pages (30d)"
+          title="Top pages (30d)"
           columns={['Path', 'Views']}
           rows={(data?.top_pages || []).map((p: any) => [p.path, fmt(p.views)])}
         />
         <Table
-          title="Top Referrers (30d)"
+          title="Top referrers (30d)"
           columns={['Source', 'Visits']}
           rows={(data?.top_referrers || []).map((r: any) => [
             r.referrer?.replace(/^https?:\/\//, '').slice(0, 40) || 'direct',
@@ -71,23 +71,23 @@ export default function AdminDashboard() {
 
       {/* Recent donations */}
       <div className="bg-card border border-border rounded-lg overflow-hidden">
-        <div className="px-5 py-[14px] border-b border-border text-[13px] font-semibold">
-          Recent Donations
+        <div className="px-5 py-[14px] border-b border-border text-sm font-semibold">
+          Recent donations
         </div>
         {(d.recent || []).length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground font-mono text-xs">
-            NO DONATIONS YET — share the app!
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            No donations yet — share the app!
           </div>
         ) : (
           <table className="w-full border-collapse">
             <tbody>
               {(d.recent || []).map((don: any, i: number) => (
                 <tr key={i} className="border-b border-border">
-                  <td className="px-5 py-3 font-mono text-primary font-bold">
+                  <td className="px-5 py-3 text-primary font-semibold tabular-nums">
                     {don.amount ? fmtUSD(don.amount) : '—'}
                   </td>
-                  <td className="px-5 py-3 text-[13px] text-foreground">{don.message || '(no message)'}</td>
-                  <td className="px-5 py-3 text-xs text-muted-foreground font-mono">
+                  <td className="px-5 py-3 text-sm text-foreground">{don.message || '(no message)'}</td>
+                  <td className="px-5 py-3 text-xs text-muted-foreground tabular-nums">
                     {new Date(don.at).toLocaleDateString()}
                   </td>
                 </tr>
@@ -111,16 +111,16 @@ export default function AdminDashboard() {
             rel="noopener noreferrer"
             className={cn(
               "flex items-center gap-[6px] px-[14px] py-[7px] border border-border rounded-sm no-underline",
-              "text-muted-foreground font-mono text-xs transition-colors",
+              "text-muted-foreground text-sm transition-colors",
               "hover:text-primary hover:border-primary"
             )}
           >
-            <ExternalLink size={11} /> {label}
+            <ExternalLink className="h-3 w-3" /> {label}
           </a>
         ))}
       </div>
 
-      <p className="mt-8 text-center text-muted-foreground text-[11px] font-mono">
+      <p className="mt-8 text-center text-xs text-muted-foreground">
         Icons by <a href="https://flaticon.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Flaticon.com</a>
       </p>
     </div>
@@ -131,15 +131,12 @@ function Stat({ icon, label, value, accent }: { icon: React.ReactNode, label: st
   return (
     <div className="bg-card border border-border px-5 py-4 rounded-lg">
       <div className="flex justify-between mb-[10px]">
-        <span
-          className="font-mono text-muted-foreground uppercase"
-          style={{ fontSize: 11, letterSpacing: '0.06em' }}
-        >
+        <span className="text-sm font-medium text-muted-foreground">
           {label}
         </span>
         <span className="text-muted-foreground">{icon}</span>
       </div>
-      <div className={cn("font-mono text-[22px] font-bold mono-number", accent ? "text-primary" : "text-foreground")}>
+      <div className={cn("text-2xl font-semibold tabular-nums", accent ? "text-primary" : "text-foreground")}>
         {value}
       </div>
     </div>
@@ -149,9 +146,9 @@ function Stat({ icon, label, value, accent }: { icon: React.ReactNode, label: st
 function Table({ title, columns, rows }: { title: string, columns: string[], rows: string[][] }) {
   return (
     <div className="bg-card border border-border rounded-lg overflow-hidden">
-      <div className="px-5 py-[14px] border-b border-border text-[13px] font-semibold">{title}</div>
+      <div className="px-5 py-[14px] border-b border-border text-sm font-semibold">{title}</div>
       {rows.length === 0 ? (
-        <div className="p-6 text-center text-muted-foreground font-mono text-[11px]">NO DATA</div>
+        <div className="p-6 text-center text-sm text-muted-foreground">No data</div>
       ) : (
         <table className="w-full border-collapse">
           <thead>
@@ -159,8 +156,7 @@ function Table({ title, columns, rows }: { title: string, columns: string[], row
               {columns.map(c => (
                 <th
                   key={c}
-                  className="px-5 py-2 text-left font-mono text-muted-foreground uppercase"
-                  style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em' }}
+                  className="px-5 py-2 text-left text-sm font-medium text-muted-foreground"
                 >
                   {c}
                 </th>
@@ -175,7 +171,7 @@ function Table({ title, columns, rows }: { title: string, columns: string[], row
                     key={j}
                     className={cn(
                       "px-5 py-[10px] text-xs",
-                      j === 0 ? "text-foreground font-sans" : "text-primary font-mono"
+                      j === 0 ? "text-foreground" : "text-primary tabular-nums"
                     )}
                   >
                     {cell}

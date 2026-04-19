@@ -45,3 +45,6 @@
 - Canvas visuals (AIBrain, Autopilot Live Race): resolve colors at draw time via the cssColor() helper (`getComputedStyle(document.documentElement).getPropertyValue('--color-*')`). Never hardcode hex / rgba in ctx.fillStyle or font-family strings in ctx.font — read --font-mono from the root instead.
 - Autopilot.tsx (757 LOC) must be split into AutopilotTopBar / AutopilotConfig / AutopilotLiveRace / AutopilotTradeLog as a behaviour-preserving Batch 5a before the primitive migration (Batch 5b).
 - Setpoints.tsx archived to frontend/src/_deprecated/ — re-evaluate during Batch 5 for the Autopilot config panel. If not adopted by Batch 7, delete.
+- Typography exceptions (uppercase is intentional):
+  - REAL MONEY ACTIVE warning banner (Sidebar live-mode indicator)
+  - Any future destructive/warning banners where urgency matters

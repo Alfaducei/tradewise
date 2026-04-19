@@ -217,33 +217,26 @@ export function AIBrain({
               isRunning ? "bg-primary shadow-[0_0_6px_var(--color-primary)] animate-pulse-live" : "bg-muted-foreground/40"
             )}
           />
-          <span
-            className="font-mono text-muted-foreground uppercase"
-            style={{ fontSize: 11, letterSpacing: '0.08em' }}
-          >
-            AI Brain
+          <span className="text-sm font-medium text-muted-foreground">
+            AI brain
           </span>
           {currentSymbol && (
-            <span
-              className="font-display font-extrabold text-primary"
-              style={{ fontSize: 12, letterSpacing: '-0.02em' }}
-            >
+            <span className="text-sm font-semibold text-primary">
               → {currentSymbol}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {cycleCount > 0 && (
-            <span className="font-mono font-medium text-muted-foreground" style={{ fontSize: 11 }}>
+            <span className="text-xs text-muted-foreground tabular-nums">
               C{cycleCount}
             </span>
           )}
           <span
             className={cn(
-              "font-mono font-bold uppercase",
+              "text-sm font-medium",
               isRunning ? "text-primary" : "text-muted-foreground"
             )}
-            style={{ fontSize: 11, letterSpacing: '0.1em' }}
           >
             {PHASE_LABELS[phase]}
           </span>
@@ -262,7 +255,7 @@ export function AIBrain({
           {/* Reasoning stream */}
           <div className="flex-1 bg-background rounded-sm px-3 py-[10px] min-h-[60px] max-h-[90px] overflow-y-auto">
             {!isRunning && !streamText ? (
-              <span className="font-mono font-medium text-muted-foreground" style={{ fontSize: 11 }}>
+              <span className="text-xs text-muted-foreground">
                 Agent not running. Start Autopilot to see AI thinking.
               </span>
             ) : streamText ? (
@@ -271,7 +264,7 @@ export function AIBrain({
                 {(phase === 'reasoning' || phase === 'scanning') && <span className="cursor" />}
               </span>
             ) : (
-              <span className="font-mono font-medium text-muted-foreground" style={{ fontSize: 11 }}>
+              <span className="text-xs text-muted-foreground">
                 Waiting for next analysis cycle...
               </span>
             )}
@@ -286,31 +279,31 @@ export function AIBrain({
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-[6px]">
                   <span
-                    className="font-display font-extrabold"
-                    style={{ fontSize: 13, color: actionColor }}
+                    className="text-sm font-semibold"
+                    style={{ color: actionColor }}
                   >
                     {latestDecision.action}
                   </span>
-                  <span className="font-display font-bold" style={{ fontSize: 13 }}>
+                  <span className="text-sm font-semibold">
                     {latestDecision.symbol}
                   </span>
                   {latestDecision.quantity && latestDecision.price && (
-                    <span className="font-mono font-medium text-muted-foreground" style={{ fontSize: 11 }}>
+                    <span className="text-xs text-muted-foreground tabular-nums">
                       ×{latestDecision.quantity} @ ${latestDecision.price.toFixed(2)}
                     </span>
                   )}
                 </div>
                 <span
-                  className="font-mono font-bold"
-                  style={{ fontSize: 11, color: actionColor }}
+                  className="text-xs font-semibold tabular-nums"
+                  style={{ color: actionColor }}
                 >
                   {Math.round((latestDecision.confidence ?? 0) * 100)}%
                 </span>
               </div>
               {/* Confidence bar */}
-              <div className="h-[2px] bg-accent rounded-[1px]">
+              <div className="h-[2px] bg-accent rounded-sm">
                 <div
-                  className="h-full rounded-[1px] transition-[width] duration-[400ms] ease-out"
+                  className="h-full rounded-sm transition-[width] duration-[400ms] ease-out"
                   style={{
                     width: `${(latestDecision.confidence ?? 0) * 100}%`,
                     background: actionColor,

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
-import { Play, Square, Settings, AlertTriangle, Bot } from 'lucide-react'
+import { Play, Square, Settings, AlertTriangle, Bot, Check } from 'lucide-react'
 import { AIBrain, type ThinkingPhase, type AIDecision } from '../components/AIBrain'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -374,11 +374,11 @@ export default function Autopilot() {
         <div className="fixed inset-0 bg-black/75 z-[999] flex items-center justify-center p-6">
           <div className="bg-popover border border-down/35 rounded-lg p-7 max-w-[420px] w-full">
             <div className="flex items-center gap-2 mb-[14px]">
-              <AlertTriangle size={17} className="text-down flex-shrink-0" />
-              <h2 className="font-display font-bold text-down text-[17px]">Autopilot Disclaimer</h2>
+              <AlertTriangle className="h-5 w-5 text-down flex-shrink-0" />
+              <h2 className="text-lg font-semibold text-down">Autopilot disclaimer</h2>
             </div>
-            <ul className="text-[12.5px] text-muted-foreground leading-[1.8] pl-4 mb-[18px] list-disc">
-              <li><strong className="text-sky">Paper trading only</strong> — no real money</li>
+            <ul className="text-sm text-muted-foreground leading-[1.8] pl-4 mb-[18px] list-disc">
+              <li><strong className="text-info">Paper trading only</strong> — no real money</li>
               <li>AI signals are <strong className="text-down">not financial advice</strong></li>
               <li>The agent <strong>will make losing trades</strong></li>
             </ul>
@@ -401,15 +401,15 @@ export default function Autopilot() {
       {/* Top bar */}
       <div className="px-5 py-[14px] border-b border-white/5 flex justify-between items-center flex-shrink-0 flex-wrap gap-[10px]">
         <div className="flex items-center gap-3">
-          <Bot aria-hidden className="h-6 w-6 text-foreground" />
-          <h1 className="font-display font-extrabold text-[21px]" style={{ letterSpacing: '-0.03em' }}>Autopilot</h1>
+          <Bot aria-hidden className="h-6 w-6 text-muted-foreground" />
+          <h1 className="text-2xl font-semibold">Autopilot</h1>
           {isRunning
             ? <Badge variant="live">LIVE · C{status?.cycle_count}</Badge>
             : <Badge variant="paper">STOPPED</Badge>}
           {status?.config?.demo_mode && (
             <Badge variant="warning">SIM MODE</Badge>
           )}
-          <span className="text-[12px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {status?.config?.demo_mode
               ? `Simulated broker · ${status?.config?.cycle_interval_seconds ?? 60}s cycles · markets-closed demo`
               : `Autonomous paper trading · AI analyses every ${Math.round((status?.config?.cycle_interval_seconds ?? 300) / 60)} min`}
@@ -428,7 +428,7 @@ export default function Autopilot() {
             }}
             title={isRunning ? 'Stop the agent before switching mode' : 'Toggle demo / simulated broker'}
             className={cn(
-              "gap-[6px] text-[12px]",
+              "gap-[6px]",
               status?.config?.demo_mode && "border-amber text-amber"
             )}
           >
@@ -438,17 +438,17 @@ export default function Autopilot() {
                 status?.config?.demo_mode ? "bg-amber" : "bg-muted-foreground"
               )}
             />
-            SIM
+            Sim
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowConfig(!showConfig)} className="gap-[5px] text-[12px]">
-            <Settings size={13} /> Config
+          <Button variant="outline" size="sm" onClick={() => setShowConfig(!showConfig)} className="gap-[5px]">
+            <Settings className="h-3 w-3" /> Config
           </Button>
           {isRunning
             ? <Button variant="destructive" size="sm" onClick={handleStop} disabled={actionLoading} className="gap-[6px]">
-                <Square size={12} />{actionLoading ? 'Stopping…' : 'Stop'}
+                <Square className="h-3 w-3" />{actionLoading ? 'Stopping…' : 'Stop'}
               </Button>
             : <Button size="sm" onClick={handleStart} disabled={actionLoading} className="gap-[6px]">
-                <Play size={12} />{actionLoading ? 'Starting…' : 'Start Agent'}
+                <Play className="h-3 w-3" />{actionLoading ? 'Starting…' : 'Start agent'}
               </Button>
           }
         </div>
@@ -459,16 +459,16 @@ export default function Autopilot() {
         <div className="bg-card border border-white/5 mx-5 mt-3 p-4 rounded-lg flex-shrink-0">
           <div className="grid grid-cols-6 gap-[14px] mb-3">
             {[
-              { key: 'max_trades', label: 'Max Pos', min: 1, max: 20, step: 1, fmt: (v: number) => String(v) },
+              { key: 'max_trades', label: 'Max pos', min: 1, max: 20, step: 1, fmt: (v: number) => String(v) },
               { key: 'cycle_interval_seconds', label: 'Cycle', min: 15, max: 3600, step: 15, fmt: (v: number) => v >= 60 ? `${Math.round(v / 60)}m` : `${v}s` },
               { key: 'min_confidence', label: 'Confidence', min: 0.4, max: 0.95, step: 0.05, fmt: (v: number) => `${(v * 100).toFixed(0)}%` },
-              { key: 'max_trade_pct', label: 'Max Pos %', min: 0.02, max: 0.3, step: 0.01, fmt: (v: number) => `${(v * 100).toFixed(0)}%` },
-              { key: 'stop_loss_pct', label: 'Stop Loss', min: 0.01, max: 0.2, step: 0.01, fmt: (v: number) => `−${(v * 100).toFixed(0)}%` },
-              { key: 'take_profit_pct', label: 'Take Profit', min: 0.05, max: 0.5, step: 0.01, fmt: (v: number) => `+${(v * 100).toFixed(0)}%` },
+              { key: 'max_trade_pct', label: 'Max pos %', min: 0.02, max: 0.3, step: 0.01, fmt: (v: number) => `${(v * 100).toFixed(0)}%` },
+              { key: 'stop_loss_pct', label: 'Stop loss', min: 0.01, max: 0.2, step: 0.01, fmt: (v: number) => `−${(v * 100).toFixed(0)}%` },
+              { key: 'take_profit_pct', label: 'Take profit', min: 0.05, max: 0.5, step: 0.01, fmt: (v: number) => `+${(v * 100).toFixed(0)}%` },
             ].map(f => (
               <div key={f.key}>
-                <div className="section-label mb-[6px] flex justify-between">
-                  <span>{f.label}</span><span className="text-primary">{f.fmt(config[f.key] ?? 0)}</span>
+                <div className="text-sm font-medium text-muted-foreground mb-[6px] flex justify-between">
+                  <span>{f.label}</span><span className="text-primary tabular-nums">{f.fmt(config[f.key] ?? 0)}</span>
                 </div>
                 <input type="range" min={f.min} max={f.max} step={f.step} value={config[f.key] ?? 0}
                   onChange={e => setConfig((c: any) => ({ ...c, [f.key]: parseFloat(e.target.value) }))}
@@ -480,7 +480,7 @@ export default function Autopilot() {
               Changing this resets the sim broker on Save. */}
           {status?.config?.demo_mode && (
             <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-3">
-              <div className="section-label flex-shrink-0 w-[110px]">Sim Starting $</div>
+              <div className="text-sm font-medium text-muted-foreground flex-shrink-0 w-[110px]">Sim starting $</div>
               <input
                 type="number"
                 min={10}
@@ -488,10 +488,10 @@ export default function Autopilot() {
                 step={10}
                 value={config.sim_starting_cash ?? 100000}
                 onChange={e => setConfig((c: any) => ({ ...c, sim_starting_cash: Math.max(10, Number(e.target.value) || 10) }))}
-                className="w-[140px] bg-background border border-border px-2 py-[6px] rounded-sm text-foreground font-mono text-[13px]"
+                className="w-[140px] bg-background border border-border px-2 py-[6px] rounded-sm text-foreground text-sm tabular-nums"
                 disabled={isRunning}
               />
-              <span className="text-muted-foreground text-[11px] font-mono">
+              <span className="text-xs text-muted-foreground">
                 {isRunning ? 'Stop the agent to change' : 'Fractional shares supported — min $10'}
               </span>
             </div>
@@ -512,10 +512,10 @@ export default function Autopilot() {
           { label: 'Return', value: fmtPct(pnlPct), color: pnlPct >= 0 ? 'var(--color-up)' : 'var(--color-down)' },
         ].map(s => (
           <div key={s.label} className="bg-card border border-white/5 rounded-lg px-[14px] py-[10px]">
-            <div className="section-label mb-[5px]">{s.label}</div>
+            <div className="text-sm font-medium text-muted-foreground mb-[5px]">{s.label}</div>
             <div
-              className="font-mono font-bold mono-number text-[17px]"
-              style={{ color: s.color, letterSpacing: '-0.02em' }}
+              className="text-lg font-semibold tabular-nums"
+              style={{ color: s.color }}
             >
               {s.value}
             </div>
@@ -539,24 +539,24 @@ export default function Autopilot() {
           {/* Trades */}
           <div className="bg-card border border-white/5 rounded-lg flex-shrink-0 overflow-hidden">
             <div className="px-[14px] py-[10px] border-b border-white/5 flex justify-between">
-              <span className="font-display font-bold text-[12.5px]">Trades</span>
-              <span className="section-label">{status?.trades?.length ?? 0} / {status?.config?.max_trades ?? 5}</span>
+              <span className="text-sm font-semibold">Trades</span>
+              <span className="text-sm font-medium text-muted-foreground tabular-nums">{status?.trades?.length ?? 0} / {status?.config?.max_trades ?? 5}</span>
             </div>
             {!(status?.trades?.length) ? (
-              <div className="p-4 text-center font-mono text-muted-foreground text-[11px]">NO OPEN TRADES</div>
+              <div className="p-4 text-center text-sm text-muted-foreground">No open trades</div>
             ) : (
               <table className="w-full">
-                <thead><tr><th>Symbol</th><th>Qty</th><th>Avg</th><th>P&L</th><th>%</th></tr></thead>
+                <thead><tr className="text-sm font-medium text-muted-foreground"><th className="text-left px-3 py-1">Symbol</th><th className="text-left px-3 py-1">Qty</th><th className="text-left px-3 py-1">Avg</th><th className="text-left px-3 py-1">P&L</th><th className="text-left px-3 py-1">%</th></tr></thead>
                 <tbody>
                   {(status.trades as any[]).map((p: any) => (
                     <tr key={p.symbol}>
-                      <td className="font-display font-extrabold text-[12px]">{p.symbol}</td>
-                      <td className="font-mono text-muted-foreground text-[12px]">{p.qty >= 1 ? Number(p.qty).toFixed(0) : Number(p.qty).toFixed(4)}</td>
-                      <td className="font-mono text-muted-foreground text-[12px]">{fmtUSD(p.avg_entry_price)}</td>
-                      <td className={cn("font-mono text-[12px]", p.unrealized_pl >= 0 ? "text-up" : "text-down")}>
+                      <td className="font-semibold text-sm px-3 py-1">{p.symbol}</td>
+                      <td className="text-sm text-muted-foreground tabular-nums px-3 py-1">{p.qty >= 1 ? Number(p.qty).toFixed(0) : Number(p.qty).toFixed(4)}</td>
+                      <td className="text-sm text-muted-foreground tabular-nums px-3 py-1">{fmtUSD(p.avg_entry_price)}</td>
+                      <td className={cn("text-sm tabular-nums px-3 py-1", p.unrealized_pl >= 0 ? "text-up" : "text-down")}>
                         {p.unrealized_pl >= 0 ? '+' : ''}{fmtUSD(p.unrealized_pl)}
                       </td>
-                      <td className={cn("font-mono text-[12px]", p.unrealized_plpc >= 0 ? "text-up" : "text-down")}>
+                      <td className={cn("text-sm tabular-nums px-3 py-1", p.unrealized_plpc >= 0 ? "text-up" : "text-down")}>
                         {fmtPct(p.unrealized_plpc)}
                       </td>
                     </tr>
@@ -569,26 +569,26 @@ export default function Autopilot() {
           {/* Decision feed */}
           <div className="bg-card border border-white/5 rounded-lg flex-1 overflow-hidden flex flex-col min-h-0">
             <div className="px-[14px] py-[10px] border-b border-white/5 flex justify-between items-center flex-shrink-0">
-              <span className="font-display font-bold text-[12.5px]">Decision Feed</span>
+              <span className="text-sm font-semibold">Decision feed</span>
               {isRunning && <span className="w-[6px] h-[6px] bg-primary rounded-full shadow-[0_0_5px_var(--color-primary)]" />}
             </div>
             <div className="overflow-y-auto flex-1">
               {!(status?.recent_decisions?.length)
-                ? <div className="p-5 text-center font-mono text-muted-foreground text-[11px]">NO DECISIONS YET</div>
+                ? <div className="p-5 text-center text-sm text-muted-foreground">No decisions yet</div>
                 : (status.recent_decisions as any[])
                     .filter((d: any) => d.decision !== 'HOLD' && d.decision !== 'SKIP')
                     .slice(0, 8).map((d: any) => (
                       <div key={d.id} className="px-[14px] py-2 border-b border-white/5">
                         <div className="flex justify-between items-center mb-[3px]">
                           <div className="flex items-center gap-[6px]">
-                            <span className="font-display font-extrabold text-[12px]">{d.symbol}</span>
+                            <span className="font-semibold text-sm">{d.symbol}</span>
                             <Badge variant={DECISION_VARIANT[d.decision] ?? 'paper'}>{d.decision.replace('_', ' ')}</Badge>
-                            {d.executed && <span className="text-primary font-mono text-[11px]">✓</span>}
+                            {d.executed && <Check className="h-3 w-3 inline-block text-up" />}
                           </div>
-                          <span className="section-label">{new Date(d.decided_at).toLocaleTimeString()}</span>
+                          <span className="text-xs text-muted-foreground tabular-nums">{new Date(d.decided_at).toLocaleTimeString()}</span>
                         </div>
                         {d.reason && (
-                          <p className="font-mono text-muted-foreground text-[11px] leading-[1.5]">
+                          <p className="text-xs text-muted-foreground leading-[1.5]">
                             {d.reason.length > 80 ? d.reason.slice(0, 80) + '…' : d.reason}
                           </p>
                         )}
@@ -606,12 +606,12 @@ export default function Autopilot() {
                 <div key={l.name} className="flex items-center gap-[7px] px-[11px] py-[6px] bg-card rounded-lg min-w-[120px]"
                   style={{ border: `1px solid ${l.color}22` }}>
                   <div
-                    className="font-mono font-bold w-[18px] h-[18px] rounded-[3px] flex items-center justify-center flex-shrink-0"
-                    style={{ color: 'var(--color-background)', background: l.color, fontSize: 11 }}
+                    className="text-xs font-semibold tabular-nums w-[18px] h-[18px] rounded-[3px] flex items-center justify-center flex-shrink-0"
+                    style={{ color: 'var(--color-background)', background: l.color }}
                   >{i + 1}</div>
                   <div>
-                    <div className="font-mono font-bold" style={{ fontSize: 11, color: l.color }}>{l.name}</div>
-                    <div className={cn("font-mono font-bold mono-number text-[12px]", l.value >= 0 ? "text-up" : "text-down")}>{fmtPct(l.value)}</div>
+                    <div className="text-xs font-semibold" style={{ color: l.color }}>{l.name}</div>
+                    <div className={cn("text-sm font-semibold tabular-nums", l.value >= 0 ? "text-up" : "text-down")}>{fmtPct(l.value)}</div>
                   </div>
                 </div>
               ))}
@@ -639,20 +639,20 @@ export default function Autopilot() {
             onMouseLeave={() => setHoverTip(null)}
           >
             <canvas ref={chartRef} className="block w-full h-full" />
-            <div className="absolute top-[10px] left-[14px] font-display font-bold text-[13px]">Live Race</div>
+            <div className="absolute top-[10px] left-[14px] text-sm font-semibold">Live race</div>
             <div className="absolute top-[11px] right-[14px]">
-              <span className="section-label">{snapshots.current.length} snapshots</span>
+              <span className="text-sm font-medium text-muted-foreground tabular-nums">{snapshots.current.length} snapshots</span>
             </div>
             <div className="absolute bottom-[26px] left-[14px] flex gap-3 flex-wrap">
               {Object.entries(ACTION_COLOR).map(([action, color]) => (
                 <div key={action} className="flex items-center gap-1">
                   <div
-                    className="w-3 h-3 rounded-full flex items-center justify-center font-mono font-bold"
-                    style={{ background: 'var(--color-card)', border: `1.5px solid ${color}`, fontSize: 11, color }}
+                    className="w-3 h-3 rounded-full flex items-center justify-center text-xs font-semibold"
+                    style={{ background: 'var(--color-card)', border: `1.5px solid ${color}`, color }}
                   >
                     {ACTION_ICON[action]}
                   </div>
-                  <span className="font-mono text-muted-foreground text-[11px]">{action.replace('_', ' ')}</span>
+                  <span className="text-xs text-muted-foreground capitalize">{action.replace('_', ' ').toLowerCase()}</span>
                 </div>
               ))}
             </div>
@@ -668,7 +668,7 @@ export default function Autopilot() {
                   minWidth: 160,
                 }}
               >
-                <div className="font-mono text-muted-foreground uppercase mb-1" style={{ fontSize: 10, letterSpacing: '0.08em' }}>
+                <div className="text-xs font-medium text-muted-foreground mb-1">
                   {hoverTip.trades.length} {hoverTip.trades.length === 1 ? 'trade' : 'trades'} this cycle
                 </div>
                 {hoverTip.trades.map((t: any, i: number) => {
@@ -676,16 +676,16 @@ export default function Autopilot() {
                   return (
                     <div key={i} className="flex items-center gap-2 py-[2px]">
                       <span
-                        className="font-mono font-bold uppercase inline-block w-[44px]"
-                        style={{ fontSize: 11, color: col, letterSpacing: '0.06em' }}
+                        className="text-xs font-semibold capitalize inline-block w-[44px]"
+                        style={{ color: col }}
                       >
-                        {t.action.replace('_', ' ')}
+                        {t.action.replace('_', ' ').toLowerCase()}
                       </span>
-                      <span className="font-display font-extrabold text-foreground" style={{ fontSize: 12 }}>
+                      <span className="text-sm font-semibold text-foreground">
                         {t.symbol}
                       </span>
                       {t.price && (
-                        <span className="font-mono font-medium text-muted-foreground ml-auto" style={{ fontSize: 11 }}>
+                        <span className="text-xs text-muted-foreground tabular-nums ml-auto">
                           ${Number(t.price).toFixed(2)}
                         </span>
                       )}
@@ -699,19 +699,19 @@ export default function Autopilot() {
           {/* Risk rules */}
           <div className="grid grid-cols-3 gap-[10px] flex-shrink-0">
             {[
-              { label: 'Stop Loss', value: `−${((status?.config?.stop_loss_pct ?? 0.05) * 100).toFixed(0)}%`, color: 'var(--color-down)', note: 'Auto-sell on loss' },
-              { label: 'Take Profit', value: `+${((status?.config?.take_profit_pct ?? 0.12) * 100).toFixed(0)}%`, color: 'var(--color-up)', note: 'Auto-sell on gain' },
+              { label: 'Stop loss', value: `−${((status?.config?.stop_loss_pct ?? 0.05) * 100).toFixed(0)}%`, color: 'var(--color-down)', note: 'Auto-sell on loss' },
+              { label: 'Take profit', value: `+${((status?.config?.take_profit_pct ?? 0.12) * 100).toFixed(0)}%`, color: 'var(--color-up)', note: 'Auto-sell on gain' },
               { label: 'Confidence', value: `${((status?.config?.min_confidence ?? 0.65) * 100).toFixed(0)}%`, color: 'var(--color-primary)', note: 'Min AI confidence' },
             ].map(s => (
               <div key={s.label} className="bg-card border border-white/5 rounded-lg px-[14px] py-[10px]">
-                <div className="section-label mb-[5px]">{s.label}</div>
+                <div className="text-sm font-medium text-muted-foreground mb-[5px]">{s.label}</div>
                 <div
-                  className="font-mono font-bold mono-number text-[19px] mb-[2px]"
-                  style={{ color: s.color, letterSpacing: '-0.02em' }}
+                  className="text-xl font-semibold tabular-nums mb-[2px]"
+                  style={{ color: s.color }}
                 >
                   {s.value}
                 </div>
-                <div className="text-muted-foreground text-[11px]">{s.note}</div>
+                <div className="text-xs text-muted-foreground">{s.note}</div>
               </div>
             ))}
           </div>
@@ -719,29 +719,29 @@ export default function Autopilot() {
           {/* Trade log */}
           <div className="bg-card border border-white/5 rounded-lg flex-shrink-0 max-h-[140px] overflow-hidden flex flex-col">
             <div className="px-[14px] py-[9px] border-b border-white/5 flex justify-between items-center flex-shrink-0">
-              <span className="font-display font-bold text-[12.5px]">Trade Log</span>
-              <span className="section-label">{tradeLog.length} executed</span>
+              <span className="text-sm font-semibold">Trade log</span>
+              <span className="text-sm font-medium text-muted-foreground tabular-nums">{tradeLog.length} executed</span>
             </div>
             <div className="overflow-y-auto flex-1">
               {!tradeLog.length
-                ? <div className="p-4 text-center font-mono text-muted-foreground text-[11px]">NO TRADES YET</div>
+                ? <div className="p-4 text-center text-sm text-muted-foreground">No trades yet</div>
                 : tradeLog.map((t, i) => {
                   const col = ACTION_COLOR[t.action] ?? 'var(--color-muted-foreground)'
                   return (
                     <div key={i} className="px-[14px] py-[6px] border-b border-white/5 flex items-center gap-2">
                       <div
-                        className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center font-mono font-bold text-[11px]"
+                        className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-semibold"
                         style={{ background: col + '18', border: `1px solid ${col}44`, color: col }}
                       >
                         {ACTION_ICON[t.action]}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-[5px]">
-                          <span className="font-display font-extrabold text-[11.5px]">{t.symbol}</span>
-                          <span className="font-mono font-bold text-[11px]" style={{ color: col }}>{t.action.replace('_', ' ')}</span>
+                          <span className="text-sm font-semibold">{t.symbol}</span>
+                          <span className="text-xs font-semibold capitalize" style={{ color: col }}>{t.action.replace('_', ' ').toLowerCase()}</span>
                         </div>
                       </div>
-                      <div className={cn("font-mono font-bold mono-number text-[11px]", t.pct >= 0 ? "text-up" : "text-down")}>
+                      <div className={cn("text-xs font-semibold tabular-nums", t.pct >= 0 ? "text-up" : "text-down")}>
                         {fmtPct(t.pct)}
                       </div>
                     </div>

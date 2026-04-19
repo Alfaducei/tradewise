@@ -3,7 +3,6 @@ import { useEffect } from 'react'
 import axios from 'axios'
 import { TradingModeProvider } from './context/TradingModeContext'
 import Sidebar from './components/Sidebar'
-import { ThemeToggle } from './components/theme-toggle'
 import Dashboard from './pages/Dashboard'
 import Recommendations from './pages/Recommendations'
 import Watchlist from './pages/Watchlist'
@@ -31,10 +30,6 @@ export default function App() {
     <TradingModeProvider>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <PageTracker />
-        {/* TEMP: Batch 6 relocates to Sidebar */}
-        <div className="fixed top-4 right-4 z-50">
-          <ThemeToggle />
-        </div>
         <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
           <Sidebar />
           <main style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>

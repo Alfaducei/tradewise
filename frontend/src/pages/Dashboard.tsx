@@ -51,8 +51,8 @@ export default function Dashboard() {
   }, [])
 
   if (loading) return (
-    <div className="flex items-center justify-center flex-1 text-muted-foreground font-mono">
-      LOADING...
+    <div className="flex items-center justify-center flex-1 text-muted-foreground">
+      Loading...
     </div>
   )
 
@@ -62,10 +62,10 @@ export default function Dashboard() {
     <div className="fade-in p-7 flex-1 overflow-y-auto">
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <LayoutDashboard aria-hidden className="h-6 w-6 text-foreground" />
-          <h1 className="text-[22px] font-semibold text-foreground">Dashboard</h1>
+          <LayoutDashboard aria-hidden className="h-6 w-6 text-muted-foreground" />
+          <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
         </div>
-        <p className="text-muted-foreground text-[13px] mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Paper trading portfolio — live Alpaca data
         </p>
       </div>
@@ -99,25 +99,24 @@ export default function Dashboard() {
       {/* Trades table */}
       <div className="bg-card border border-border mb-5 rounded-lg overflow-hidden">
         <div className="px-5 py-[14px] border-b border-border flex justify-between items-center">
-          <span className="text-[13px] font-semibold tracking-wide">Open Trades</span>
-          <span className="font-mono text-[11px] text-muted-foreground">
+          <span className="text-sm font-semibold">Open trades</span>
+          <span className="text-xs text-muted-foreground tabular-nums">
             {trades.length} active
           </span>
         </div>
 
         {trades.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground font-mono text-xs">
-            NO OPEN TRADES
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            No open trades
           </div>
         ) : (
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-border">
-                {['Symbol', 'Qty', 'Avg Entry', 'Current', 'Market Value', 'Unrealized P&L', 'Return'].map(h => (
+                {['Symbol', 'Qty', 'Avg entry', 'Current', 'Market value', 'Unrealized P&L', 'Return'].map(h => (
                   <th
                     key={h}
-                    className="px-5 py-2 text-left font-mono font-bold text-muted-foreground uppercase"
-                    style={{ fontSize: 11, letterSpacing: '0.08em' }}
+                    className="px-5 py-2 text-left text-sm font-medium text-muted-foreground"
                   >
                     {h}
                   </th>
@@ -131,16 +130,16 @@ export default function Dashboard() {
                   className="border-b border-border transition-colors hover:bg-popover"
                 >
                   <td className="px-5 py-3">
-                    <span className="font-mono font-bold text-[13px]">{p.symbol}</span>
+                    <span className="font-semibold text-sm">{p.symbol}</span>
                   </td>
-                  <td className="px-5 py-3 font-mono text-[13px] text-foreground">{fmt(p.qty, 0)}</td>
-                  <td className="px-5 py-3 font-mono text-[13px] text-foreground">{fmtUSD(p.avg_entry_price)}</td>
-                  <td className="px-5 py-3 font-mono text-[13px]">{fmtUSD(p.current_price)}</td>
-                  <td className="px-5 py-3 font-mono text-[13px]">{fmtUSD(p.market_value)}</td>
-                  <td className={cn("px-5 py-3 font-mono text-[13px]", p.unrealized_pl >= 0 ? "text-up" : "text-down")}>
+                  <td className="px-5 py-3 text-sm tabular-nums text-foreground">{fmt(p.qty, 0)}</td>
+                  <td className="px-5 py-3 text-sm tabular-nums text-foreground">{fmtUSD(p.avg_entry_price)}</td>
+                  <td className="px-5 py-3 text-sm tabular-nums">{fmtUSD(p.current_price)}</td>
+                  <td className="px-5 py-3 text-sm tabular-nums">{fmtUSD(p.market_value)}</td>
+                  <td className={cn("px-5 py-3 text-sm tabular-nums font-medium", p.unrealized_pl >= 0 ? "text-up" : "text-down")}>
                     {p.unrealized_pl >= 0 ? '+' : ''}{fmtUSD(p.unrealized_pl)}
                   </td>
-                  <td className={cn("px-5 py-3 font-mono text-[13px]", p.unrealized_plpc >= 0 ? "text-up" : "text-down")}>
+                  <td className={cn("px-5 py-3 text-sm tabular-nums font-medium", p.unrealized_plpc >= 0 ? "text-up" : "text-down")}>
                     {p.unrealized_plpc >= 0 ? '+' : ''}{fmt(p.unrealized_plpc)}%
                   </td>
                 </tr>
@@ -159,16 +158,13 @@ function StatCard({ label, value, valueColor, icon }: {
   return (
     <div className="bg-card border border-border px-5 py-4 rounded-lg">
       <div className="flex justify-between items-center mb-[10px]">
-        <span
-          className="font-mono text-muted-foreground uppercase"
-          style={{ fontSize: 11, letterSpacing: '0.06em' }}
-        >
+        <span className="text-sm font-medium text-muted-foreground">
           {label}
         </span>
         <span className="text-muted-foreground">{icon}</span>
       </div>
       <div
-        className="text-[22px] font-mono font-bold"
+        className="text-2xl font-semibold tabular-nums"
         style={{ color: valueColor ?? 'var(--color-foreground)' }}
       >
         {value}

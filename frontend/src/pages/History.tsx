@@ -37,23 +37,23 @@ export default function History() {
     <div className="fade-in p-7 flex-1 overflow-y-auto">
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <HistoryIcon aria-hidden className="h-6 w-6 text-foreground" />
-          <h1 className="text-[22px] font-semibold">Trade History</h1>
+          <HistoryIcon aria-hidden className="h-6 w-6 text-muted-foreground" />
+          <h1 className="text-2xl font-semibold">Trade history</h1>
         </div>
-        <p className="text-muted-foreground text-[13px] mt-1">All executed paper trades</p>
+        <p className="text-sm text-muted-foreground mt-1">All executed paper trades</p>
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[
-          { label: 'Total Buys', value: fmtUSD(totalBuys), color: 'var(--color-primary)' },
-          { label: 'Total Sells', value: fmtUSD(totalSells), color: 'var(--color-down)' },
-          { label: 'AI-Assisted', value: `${aiAssisted} / ${trades.length}`, color: 'var(--color-foreground)' },
+          { label: 'Total buys', value: fmtUSD(totalBuys), color: 'var(--color-primary)' },
+          { label: 'Total sells', value: fmtUSD(totalSells), color: 'var(--color-down)' },
+          { label: 'AI-assisted', value: `${aiAssisted} / ${trades.length}`, color: 'var(--color-foreground)' },
         ].map(s => (
           <div key={s.label} className="bg-card border border-border px-[18px] py-[14px] rounded-lg">
-            <div className="section-label mb-[6px]">{s.label}</div>
+            <div className="text-sm font-medium text-muted-foreground mb-[6px]">{s.label}</div>
             <div
-              className="font-mono font-bold mono-number text-[18px]"
+              className="text-2xl font-semibold tabular-nums"
               style={{ color: s.color }}
             >
               {s.value}
@@ -69,14 +69,13 @@ export default function History() {
             key={f}
             onClick={() => setFilter(f)}
             className={cn(
-              "px-4 py-[6px] font-mono font-bold uppercase rounded-sm border",
+              "px-4 py-[6px] text-sm font-medium rounded-sm border capitalize",
               filter === f
                 ? "bg-accent border-primary/40 text-primary"
                 : "bg-transparent border-border text-muted-foreground"
             )}
-            style={{ fontSize: 11, letterSpacing: '0.06em' }}
           >
-            {f}
+            {f.toLowerCase()}
           </button>
         ))}
       </div>
@@ -84,18 +83,17 @@ export default function History() {
       {/* Table */}
       <div className="bg-card border border-border rounded-lg overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-muted-foreground font-mono text-xs">LOADING...</div>
+          <div className="p-10 text-center text-sm text-muted-foreground">Loading...</div>
         ) : filtered.length === 0 ? (
-          <div className="p-10 text-center text-muted-foreground font-mono text-xs">NO TRADES YET</div>
+          <div className="p-10 text-center text-sm text-muted-foreground">No trades yet</div>
         ) : (
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-border">
-                {['Symbol', 'Action', 'Qty', 'Price', 'Total Value', 'Source', 'Time'].map(h => (
+                {['Symbol', 'Action', 'Qty', 'Price', 'Total value', 'Source', 'Time'].map(h => (
                   <th
                     key={h}
-                    className="px-5 py-[10px] text-left font-mono font-bold text-muted-foreground uppercase"
-                    style={{ fontSize: 11, letterSpacing: '0.08em' }}
+                    className="px-5 py-[10px] text-left text-sm font-medium text-muted-foreground"
                   >
                     {h}
                   </th>
@@ -105,20 +103,20 @@ export default function History() {
             <tbody>
               {filtered.map(t => (
                 <tr key={t.id} className="border-b border-border hover:bg-popover transition-colors">
-                  <td className="px-5 py-3 font-mono font-bold text-[13px]">{t.symbol}</td>
+                  <td className="px-5 py-3 text-sm font-semibold">{t.symbol}</td>
                   <td className="px-5 py-3">
                     <Badge variant={t.action === 'BUY' ? 'buy' : 'sell'}>{t.action}</Badge>
                   </td>
-                  <td className="px-5 py-3 font-mono text-[13px] text-foreground">{t.quantity}</td>
-                  <td className="px-5 py-3 font-mono text-[13px] text-foreground">{fmtUSD(t.price)}</td>
-                  <td className="px-5 py-3 font-mono text-[13px] font-semibold">{fmtUSD(t.total_value)}</td>
+                  <td className="px-5 py-3 text-sm tabular-nums text-foreground">{t.quantity}</td>
+                  <td className="px-5 py-3 text-sm tabular-nums text-foreground">{fmtUSD(t.price)}</td>
+                  <td className="px-5 py-3 text-sm tabular-nums font-semibold">{fmtUSD(t.total_value)}</td>
                   <td className="px-5 py-3">
                     {t.recommendation_id ? (
-                      <span className="flex items-center gap-1 text-primary font-mono text-[11px]">
-                        <Brain size={11} /> AI
+                      <span className="flex items-center gap-1 text-primary text-xs">
+                        <Brain className="h-3 w-3" /> AI
                       </span>
                     ) : (
-                      <span className="text-muted-foreground font-mono text-[11px]">Manual</span>
+                      <span className="text-muted-foreground text-xs">Manual</span>
                     )}
                   </td>
                   <td className="px-5 py-3 text-xs text-muted-foreground">
