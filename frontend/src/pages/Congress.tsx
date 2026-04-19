@@ -96,7 +96,7 @@ export default function CongressTracker() {
           Public STOCK Act disclosures — members of Congress must report trades within 45 days by law.
         </p>
         <p className="text-muted-foreground text-[11px] mt-1 font-mono">
-          DATA SOURCE: house-stock-watcher.com + senate-stock-watcher.com · STOCK Act of 2012
+          DATA SOURCE: financialmodelingprep.com · STOCK Act of 2012
         </p>
       </div>
 
@@ -180,7 +180,7 @@ export default function CongressTracker() {
                   <td className="px-4 py-[10px]">
                     <div className="text-[13px] font-medium">{t.member}</div>
                     <div className="text-[11px] font-mono" style={{ color: partyColor(t.party) }}>
-                      {t.party} · {t.state}
+                      {[t.party, t.state].filter(Boolean).join(' · ') || '—'}
                     </div>
                   </td>
                   <td className="px-4 py-[10px] font-mono text-[11px] text-muted-foreground">
