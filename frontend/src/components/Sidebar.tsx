@@ -1,125 +1,190 @@
 import { NavLink } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import axios from 'axios'
 import { useTradingMode } from '../context/TradingModeContext'
+import { ICON } from '@/lib/icons'
+import { cn } from '@/lib/utils'
 
-const NAV = [
-  { to: '/',               icon: '◼', label: 'Dashboard'  },
-  { to: '/recommendations',icon: '◈', label: 'Signals'    },
-  { to: '/autopilot',     icon: '⚡', label: 'Autopilot' },
-  { to: '/race',           icon: '▶', label: 'Live Race'  },
-  { to: '/congress',       icon: '⬡', label: 'Congress'   },
-  { to: '/watchlist',      icon: '◎', label: 'Watchlist'  },
-  { to: '/history',        icon: '▣', label: 'History'    },
-  { to: '/admin',          icon: '◧', label: 'Analytics'  },
-  { to: '/feedback',       icon: '✉', label: 'Feedback'   },
-  { to: '/donate',         icon: '♥', label: 'Donate'     },
+const api = axios.create({ baseURL: '/api' })
+
+type NavItem = { to: string; icon: string; label: string; key: string }
+
+const SECTIONS: { title: string; items: NavItem[] }[] = [
+  {
+    title: 'Overview',
+    items: [
+      { to: '/',                icon: ICON.dashboard, label: 'Dashboard',  key: 'dashboard' },
+      { to: '/recommendations', icon: ICON.signals,   label: 'Signals',    key: 'signals' },
+      { to: '/autopilot',       icon: ICON.autopilot, label: 'Autopilot',  key: 'autopilot' },
+    ],
+  },
+  {
+    title: 'Research',
+    items: [
+      { to: '/congress',  icon: ICON.congress,  label: 'Congress',   key: 'congress' },
+      { to: '/watchlist', icon: ICON.watchlist, label: 'Watchlist',  key: 'watchlist' },
+      { to: '/history',   icon: ICON.history,   label: 'History',    key: 'history' },
+    ],
+  },
+  {
+    title: 'Account',
+    items: [
+      { to: '/admin',    icon: ICON.analytics, label: 'Analytics', key: 'analytics' },
+      { to: '/feedback', icon: ICON.feedback,  label: 'Feedback',  key: 'feedback' },
+      { to: '/donate',   icon: ICON.donate,    label: 'Donate',    key: 'donate' },
+    ],
+  },
 ]
 
 export default function Sidebar() {
   const { mode, setMode } = useTradingMode()
   const isLive = mode === 'live'
+  const [signalCount, setSignalCount] = useState(0)
+
+  useEffect(() => {
+    const load = () => api.get('/recommendations?status=pending')
+      .then(r => setSignalCount(Array.isArray(r.data) ? r.data.length : 0))
+      .catch(() => {})
+    load()
+    const iv = setInterval(load, 30_000)
+    return () => clearInterval(iv)
+  }, [])
 
   return (
-    <nav style={{
-      width: 212,
-      background: 'var(--ink-1)',
-      borderRight: '1px solid var(--line-sub)',
-      display: 'flex', flexDirection: 'column',
-      flexShrink: 0,
-    }}>
+    <nav className="w-[212px] bg-card border-r border-white/5 flex flex-col flex-shrink-0">
       {/* Brand */}
-      <div style={{ padding: '20px 18px 16px', borderBottom: '1px solid var(--line-sub)' }}>
-        <div style={{
-          fontFamily: 'var(--f-display)', fontSize: 19, fontWeight: 800,
-          color: 'var(--paper)', letterSpacing: '-0.03em', lineHeight: 1,
-          marginBottom: 3,
-        }}>
-          Trade<span style={{ color: 'var(--live)' }}>Wise</span>
+      <div className="px-[18px] pt-5 pb-4 border-b border-white/5">
+        <div
+          className="font-display font-extrabold text-foreground leading-none mb-[3px]"
+          style={{ fontSize: 19, letterSpacing: '-0.03em' }}
+        >
+          Trade<span className="text-primary">Wise</span>
         </div>
-        <div style={{ fontFamily: 'var(--f-mono)', fontSize: 9, color: 'var(--paper-4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+        <div
+          className="font-mono text-muted-foreground uppercase"
+          style={{ fontSize: 11, letterSpacing: '0.12em' }}
+        >
           AI · FREE · OPEN SOURCE
         </div>
       </div>
 
       {/* Mode toggle */}
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--line-sub)' }}>
-        <div style={{ fontFamily: 'var(--f-mono)', fontSize: 9, color: 'var(--paper-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 7 }}>
+      <div className="px-3 py-[10px] border-b border-white/5">
+        <div
+          className="font-mono text-muted-foreground uppercase mb-[7px]"
+          style={{ fontSize: 11, letterSpacing: '0.1em' }}
+        >
           Mode
         </div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {(['paper','live'] as const).map(m => (
-            <button key={m}
-              onClick={() => m === 'live' ? confirmLive(setMode) : setMode('paper')}
-              style={{
-                flex: 1, padding: '5px 0',
-                fontFamily: 'var(--f-mono)', fontSize: 9.5, fontWeight: 700,
-                letterSpacing: '0.07em', textTransform: 'uppercase',
-                borderRadius: 'var(--r-sm)',
-                background: mode === m
-                  ? m === 'live' ? 'rgba(244,63,94,0.15)' : 'var(--live-dim)'
-                  : 'var(--ink-2)',
-                border: `1px solid ${mode === m
-                  ? m === 'live' ? 'rgba(244,63,94,0.35)' : 'rgba(212,255,0,0.35)'
-                  : 'var(--line-sub)'}`,
-                color: mode === m
-                  ? m === 'live' ? 'var(--down)' : 'var(--live)'
-                  : 'var(--paper-3)',
-              }}
-            >{m === 'live' ? '● LIVE' : '○ PAPER'}</button>
-          ))}
+        <div className="flex gap-1">
+          {(['paper','live'] as const).map(m => {
+            const active = mode === m
+            const isLiveBtn = m === 'live'
+            return (
+              <button
+                key={m}
+                onClick={() => isLiveBtn ? confirmLive(setMode) : setMode('paper')}
+                className={cn(
+                  "flex-1 py-[5px] rounded-sm border font-mono font-bold uppercase",
+                  "transition-colors",
+                  active
+                    ? isLiveBtn
+                      ? "bg-down/15 border-down/35 text-down"
+                      : "bg-primary/10 border-primary/35 text-primary"
+                    : "bg-popover border-white/5 text-muted-foreground"
+                )}
+                style={{ fontSize: 11, letterSpacing: '0.07em' }}
+              >
+                {isLiveBtn ? '● LIVE' : '○ PAPER'}
+              </button>
+            )
+          })}
         </div>
         {isLive && (
-          <div style={{
-            marginTop: 7, padding: '5px 8px',
-            background: 'var(--down-dim)', border: '1px solid rgba(244,63,94,0.25)',
-            borderRadius: 'var(--r-sm)',
-            fontFamily: 'var(--f-mono)', fontSize: 9, color: 'var(--down)', lineHeight: 1.5,
-          }}>⚠ REAL MONEY ACTIVE</div>
+          <div
+            className="mt-[7px] px-2 py-[5px] bg-down/10 border border-down/25 rounded-sm font-mono text-down leading-[1.5]"
+            style={{ fontSize: 11 }}
+          >
+            ⚠ REAL MONEY ACTIVE
+          </div>
         )}
       </div>
 
-      {/* Nav */}
-      <div style={{ flex: 1, padding: '8px 0', overflowY: 'auto' }}>
-        {NAV.map(({ to, icon, label }) => (
-          <NavLink key={to} to={to} end={to === '/'}
-            style={({ isActive }) => ({
-              display: 'flex', alignItems: 'center', gap: 9,
-              padding: '8.5px 18px',
-              color: isActive ? 'var(--paper)' : label === 'Donate' ? 'var(--live)' : 'var(--paper-2)',
-              textDecoration: 'none',
-              fontFamily: 'var(--f-sans)', fontWeight: isActive ? 600 : 400, fontSize: 12.5,
-              background: isActive ? 'var(--ink-2)' : 'transparent',
-              borderLeft: `2px solid ${isActive ? 'var(--live)' : 'transparent'}`,
-              transition: 'all 0.12s ease',
-              letterSpacing: '0.01em',
-            })}
-          >
-            <span style={{ fontSize: 11, opacity: 0.6, fontFamily: 'var(--f-mono)', flexShrink: 0 }}>{icon}</span>
-            {label}
-          </NavLink>
+      {/* Nav — grouped by section */}
+      <div className="flex-1 py-3 overflow-y-auto">
+        {SECTIONS.map((section, si) => (
+          <div key={section.title} className={cn(si > 0 && "mt-4")}>
+            <div
+              className="px-[18px] mb-[6px] font-mono text-muted-foreground uppercase"
+              style={{ fontSize: 11, letterSpacing: '0.14em', opacity: 0.6 }}
+            >
+              {section.title}
+            </div>
+            {section.items.map(({ to, icon, label, key }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                className={({ isActive }) => cn(
+                  "flex items-center gap-[10px] pl-[16px] pr-3 py-[8px] font-sans text-[12.5px] no-underline",
+                  "transition-all duration-[120ms] ease-in-out border-l-2",
+                  isActive
+                    ? "text-foreground bg-popover border-primary font-semibold"
+                    : cn(
+                        "bg-transparent border-transparent font-normal",
+                        key === 'donate' ? "text-primary" : "text-muted-foreground"
+                      )
+                )}
+                style={{ letterSpacing: '0.01em' }}
+              >
+                {({ isActive }: { isActive: boolean }) => (
+                  <>
+                    <img
+                      src={icon}
+                      alt=""
+                      aria-hidden
+                      className={cn("w-[18px] h-[18px] flex-shrink-0", isActive ? "icon-accent" : "icon-white")}
+                    />
+                    <span className="flex-1">{label}</span>
+                    {key === 'signals' && signalCount > 0 && (
+                      <span
+                        className={cn(
+                          "font-mono font-bold rounded-sm px-[6px] py-[1px]",
+                          isActive ? "bg-primary/20 text-primary" : "bg-primary/15 text-primary"
+                        )}
+                        style={{ fontSize: 11, letterSpacing: '0.02em' }}
+                      >
+                        {signalCount}
+                      </span>
+                    )}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </div>
         ))}
       </div>
 
       {/* Donate strip */}
-      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--line-sub)' }}>
+      <div className="px-3 py-[10px] border-t border-white/5">
         <a
           href="https://buymeacoffee.com/tradewise"
-          target="_blank" rel="noopener noreferrer"
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            padding: '8px 0',
-            background: 'var(--live-dim)', border: '1px solid rgba(212,255,0,0.2)',
-            borderRadius: 'var(--r)',
-            color: 'var(--live)', textDecoration: 'none',
-            fontFamily: 'var(--f-display)', fontWeight: 700, fontSize: 11.5,
-            transition: 'all 0.15s',
-            letterSpacing: '0.01em',
-          }}
-          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(212,255,0,0.18)')}
-          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'var(--live-dim)')}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            "flex items-center justify-center gap-[6px] py-2 rounded-lg no-underline",
+            "bg-primary/10 border border-primary/20 text-primary",
+            "font-display font-bold text-[11.5px] transition-colors",
+            "hover:bg-primary/20"
+          )}
+          style={{ letterSpacing: '0.01em' }}
         >
           ♥ Support TradeWise
         </a>
-        <p style={{ textAlign: 'center', fontSize: 9.5, color: 'var(--paper-4)', marginTop: 6, lineHeight: 1.4 }}>
+        <p
+          className="text-center text-muted-foreground mt-[6px] leading-[1.4]"
+          style={{ fontSize: 11 }}
+        >
           Free forever. Only donate if you profit.
         </p>
       </div>

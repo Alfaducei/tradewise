@@ -11,6 +11,7 @@ from alpaca.trading.enums import OrderSide, TimeInForce, QueryOrderStatus
 from alpaca.data.historical import StockHistoricalDataClient, CryptoHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest, CryptoBarsRequest
 from alpaca.data.timeframe import TimeFrame
+from alpaca.data.enums import DataFeed
 from datetime import datetime, timedelta, timezone
 import pandas as pd
 
@@ -86,11 +87,42 @@ def is_live_configured() -> bool:
 def get_stock_bars(symbol: str, days: int = 60) -> pd.DataFrame:
     end = datetime.now(timezone.utc)
     start = end - timedelta(days=days)
-    bars = stock_data_client.get_stock_bars(StockBarsRequest(symbol_or_symbols=symbol, timeframe=TimeFrame.Day, start=start, end=end))
+    bars = stock_data_client.get_stock_bars(StockBarsRequest(symbol_or_symbols=symbol, timeframe=TimeFrame.Day, start=start, end=end, feed=DataFeed.IEX))
     df = bars.df
     if isinstance(df.index, pd.MultiIndex):
         df = df.xs(symbol, level=0)
     return df.reset_index()
+
+
+def get_multi_stock_bars(symbols: list[str], days: int = 30, chunk: int = 100) -> dict[str, pd.DataFrame]:
+    """Bulk daily-bar fetch for a universe of tickers. One Alpaca call per chunk."""
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=days)
+    out: dict[str, pd.DataFrame] = {}
+    for i in range(0, len(symbols), chunk):
+        batch = symbols[i : i + chunk]
+        try:
+            req = StockBarsRequest(
+                symbol_or_symbols=batch,
+                timeframe=TimeFrame.Day,
+                start=start,
+                end=end,
+                feed=DataFeed.IEX,
+            )
+            df = stock_data_client.get_stock_bars(req).df
+        except Exception:
+            continue
+        if df is None or df.empty:
+            continue
+        if isinstance(df.index, pd.MultiIndex):
+            for sym in df.index.get_level_values(0).unique():
+                sub = df.xs(sym, level=0).reset_index()
+                out[sym] = sub
+        else:
+            # Single-symbol return shape (shouldn't happen with list of >1, but handle)
+            if batch:
+                out[batch[0]] = df.reset_index()
+    return out
 
 
 def get_crypto_bars(symbol: str, days: int = 60) -> pd.DataFrame:

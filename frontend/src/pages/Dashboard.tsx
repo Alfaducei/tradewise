@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { getPortfolio } from '../api/client'
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { TrendingUp, TrendingDown, DollarSign, Activity } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { ICON } from '@/lib/icons'
 
 interface Trade {
   symbol: string
@@ -51,7 +52,7 @@ export default function Dashboard() {
   }, [])
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: 'var(--text-2)', fontFamily: 'var(--font-mono)' }}>
+    <div className="flex items-center justify-center flex-1 text-muted-foreground font-mono">
       LOADING...
     </div>
   )
@@ -59,16 +60,19 @@ export default function Dashboard() {
   const isPositive = (account?.pnl ?? 0) >= 0
 
   return (
-    <div className="fade-in" style={{ padding: 28, flex: 1, overflowY: 'auto' }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--text-0)' }}>Dashboard</h1>
-        <p style={{ color: 'var(--text-2)', fontSize: 13, marginTop: 4 }}>
+    <div className="fade-in p-7 flex-1 overflow-y-auto">
+      <div className="mb-6">
+        <div className="flex items-center gap-3">
+          <img src={ICON.dashboard} alt="" aria-hidden className="icon-white w-6 h-6" />
+          <h1 className="text-[22px] font-semibold text-foreground">Dashboard</h1>
+        </div>
+        <p className="text-muted-foreground text-[13px] mt-1">
           Paper trading portfolio — live Alpaca data
         </p>
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div className="grid grid-cols-4 gap-3 mb-6">
         <StatCard
           label="Portfolio Value"
           value={fmtUSD(account?.portfolio_value ?? 0)}
@@ -82,75 +86,62 @@ export default function Dashboard() {
         <StatCard
           label="Today's P&L"
           value={`${isPositive ? '+' : ''}${fmtUSD(account?.pnl ?? 0)}`}
-          valueColor={isPositive ? 'var(--accent)' : 'var(--red)'}
+          valueColor={isPositive ? 'var(--color-up)' : 'var(--color-down)'}
           icon={isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
         />
         <StatCard
           label="Return"
           value={`${isPositive ? '+' : ''}${fmt(account?.pnl_pct ?? 0)}%`}
-          valueColor={isPositive ? 'var(--accent)' : 'var(--red)'}
+          valueColor={isPositive ? 'var(--color-up)' : 'var(--color-down)'}
           icon={<TrendingUp size={14} />}
         />
       </div>
 
       {/* Trades table */}
-      <div style={{
-        background: 'var(--bg-1)',
-        border: '1px solid var(--border)',
-        marginBottom: 20,
-      }}>
-        <div style={{
-          padding: '14px 20px',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
-          <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.04em' }}>Open Trades</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)' }}>
+      <div className="bg-card border border-border mb-5 rounded-lg overflow-hidden">
+        <div className="px-5 py-[14px] border-b border-border flex justify-between items-center">
+          <span className="text-[13px] font-semibold tracking-wide">Open Trades</span>
+          <span className="font-mono text-[11px] text-muted-foreground">
             {trades.length} active
           </span>
         </div>
 
         {trades.length === 0 ? (
-          <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+          <div className="p-8 text-center text-muted-foreground font-mono text-xs">
             NO OPEN TRADES
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              <tr className="border-b border-border">
                 {['Symbol', 'Qty', 'Avg Entry', 'Current', 'Market Value', 'Unrealized P&L', 'Return'].map(h => (
-                  <th key={h} style={{
-                    padding: '8px 20px',
-                    textAlign: 'left',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: 'var(--text-3)',
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                  }}>{h}</th>
+                  <th
+                    key={h}
+                    className="px-5 py-2 text-left font-mono font-bold text-muted-foreground uppercase"
+                    style={{ fontSize: 11, letterSpacing: '0.08em' }}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {trades.map(p => (
-                <tr key={p.symbol} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-2)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                <tr
+                  key={p.symbol}
+                  className="border-b border-border transition-colors hover:bg-popover"
                 >
-                  <td style={{ padding: '12px 20px' }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13 }}>{p.symbol}</span>
+                  <td className="px-5 py-3">
+                    <span className="font-mono font-bold text-[13px]">{p.symbol}</span>
                   </td>
-                  <td style={{ padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-1)' }}>{fmt(p.qty, 0)}</td>
-                  <td style={{ padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-1)' }}>{fmtUSD(p.avg_entry_price)}</td>
-                  <td style={{ padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 13 }}>{fmtUSD(p.current_price)}</td>
-                  <td style={{ padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 13 }}>{fmtUSD(p.market_value)}</td>
-                  <td style={{ padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 13, color: p.unrealized_pl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
+                  <td className="px-5 py-3 font-mono text-[13px] text-foreground">{fmt(p.qty, 0)}</td>
+                  <td className="px-5 py-3 font-mono text-[13px] text-foreground">{fmtUSD(p.avg_entry_price)}</td>
+                  <td className="px-5 py-3 font-mono text-[13px]">{fmtUSD(p.current_price)}</td>
+                  <td className="px-5 py-3 font-mono text-[13px]">{fmtUSD(p.market_value)}</td>
+                  <td className={cn("px-5 py-3 font-mono text-[13px]", p.unrealized_pl >= 0 ? "text-up" : "text-down")}>
                     {p.unrealized_pl >= 0 ? '+' : ''}{fmtUSD(p.unrealized_pl)}
                   </td>
-                  <td style={{ padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 13, color: p.unrealized_plpc >= 0 ? 'var(--accent)' : 'var(--red)' }}>
+                  <td className={cn("px-5 py-3 font-mono text-[13px]", p.unrealized_plpc >= 0 ? "text-up" : "text-down")}>
                     {p.unrealized_plpc >= 0 ? '+' : ''}{fmt(p.unrealized_plpc)}%
                   </td>
                 </tr>
@@ -163,20 +154,24 @@ export default function Dashboard() {
   )
 }
 
-function StatCard({ label, value, valueColor = 'var(--text-0)', icon }: {
+function StatCard({ label, value, valueColor, icon }: {
   label: string, value: string, valueColor?: string, icon: React.ReactNode
 }) {
   return (
-    <div style={{
-      background: 'var(--bg-1)',
-      border: '1px solid var(--border)',
-      padding: '16px 20px',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</span>
-        <span style={{ color: 'var(--text-3)' }}>{icon}</span>
+    <div className="bg-card border border-border px-5 py-4 rounded-lg">
+      <div className="flex justify-between items-center mb-[10px]">
+        <span
+          className="font-mono text-muted-foreground uppercase"
+          style={{ fontSize: 11, letterSpacing: '0.06em' }}
+        >
+          {label}
+        </span>
+        <span className="text-muted-foreground">{icon}</span>
       </div>
-      <div style={{ fontSize: 22, fontFamily: 'var(--font-mono)', fontWeight: 700, color: valueColor }}>
+      <div
+        className="text-[22px] font-mono font-bold"
+        style={{ color: valueColor ?? 'var(--color-foreground)' }}
+      >
         {value}
       </div>
     </div>

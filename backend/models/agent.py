@@ -21,6 +21,8 @@ class AgentState(Base):
     take_profit_pct = Column(Float, default=0.12)    # 12% take profit
     cycle_interval_seconds = Column(Integer, default=300)  # 5 min cycles
     min_confidence = Column(Float, default=0.65)     # only trade signals >= 65%
+    demo_mode = Column(Boolean, default=False)       # when True, use local sim broker instead of Alpaca
+    sim_starting_cash = Column(Float, default=100000.0)  # starting balance for the sim broker on reset
 
 
 class AgentDecision(Base):

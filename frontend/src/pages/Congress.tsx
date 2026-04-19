@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { analyzeSymbol } from '../api/client'
-import { Zap, TrendingUp } from 'lucide-react'
+import { Zap } from 'lucide-react'
 import axios from 'axios'
+import { cn } from '@/lib/utils'
+import { ICON } from '@/lib/icons'
 
 interface CongressTrade {
   chamber: string
@@ -73,56 +75,52 @@ export default function CongressTracker() {
     t.member.toLowerCase().includes(search.toLowerCase())
   )
 
-  const partyColor = (p: string) => p === 'D' ? '#4a90d9' : p === 'R' ? 'var(--red)' : 'var(--text-2)'
+  const partyColor = (p: string) => p === 'D' ? '#4a90d9' : p === 'R' ? 'var(--color-down)' : 'var(--color-muted-foreground)'
   const txColor = (tx: string) => tx?.toLowerCase().includes('purchase') || tx?.toLowerCase().includes('buy')
-    ? 'var(--accent)' : tx?.toLowerCase().includes('sale') ? 'var(--red)' : 'var(--text-2)'
+    ? 'var(--color-primary)' : tx?.toLowerCase().includes('sale') ? 'var(--color-down)' : 'var(--color-muted-foreground)'
 
   return (
-    <div className="fade-in" style={{ padding: 28, flex: 1, overflowY: 'auto' }}>
+    <div className="fade-in p-7 flex-1 overflow-y-auto">
       {toast && (
-        <div style={{
-          trade: 'fixed', top: 20, right: 20, zIndex: 999,
-          background: 'var(--bg-3)', border: '1px solid var(--border-bright)',
-          padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: 12,
-          color: 'var(--accent)',
-        }}>{toast}</div>
+        <div className="fixed top-5 right-5 z-[999] bg-accent border border-primary/40 px-5 py-3 font-mono text-xs text-primary rounded-lg">
+          {toast}
+        </div>
       )}
 
-      <div style={{ marginBottom: 8 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600 }}>Congress Tracker</h1>
-        <p style={{ color: 'var(--text-2)', fontSize: 13, marginTop: 4 }}>
+      <div className="mb-2">
+        <div className="flex items-center gap-3">
+          <img src={ICON.congress} alt="" aria-hidden className="icon-white w-6 h-6" />
+          <h1 className="text-[22px] font-semibold">Congress Tracker</h1>
+        </div>
+        <p className="text-muted-foreground text-[13px] mt-1">
           Public STOCK Act disclosures — members of Congress must report trades within 45 days by law.
         </p>
-        <p style={{ color: 'var(--text-3)', fontSize: 11, marginTop: 4, fontFamily: 'var(--font-mono)' }}>
+        <p className="text-muted-foreground text-[11px] mt-1 font-mono">
           DATA SOURCE: house-stock-watcher.com + senate-stock-watcher.com · STOCK Act of 2012
         </p>
       </div>
 
       {/* Top tickers */}
       {topTickers.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+        <div className="mb-5 mt-5">
+          <div
+            className="font-mono text-muted-foreground uppercase mb-[10px]"
+            style={{ fontSize: 11, letterSpacing: '0.08em' }}
+          >
             MOST TRADED BY CONGRESS (RECENT)
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div className="flex flex-wrap gap-2">
             {topTickers.slice(0, 10).map(t => (
-              <div key={t.ticker} style={{
-                background: 'var(--bg-2)', border: '1px solid var(--border)',
-                padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8,
-              }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13 }}>{t.ticker}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-2)' }}>{t.total_trades} trades</span>
-                <span style={{ fontSize: 11, color: t.buy_pct > 60 ? 'var(--accent)' : 'var(--red)' }}>
+              <div key={t.ticker} className="bg-popover border border-border px-3 py-[6px] flex items-center gap-2 rounded-sm">
+                <span className="font-mono font-bold text-[13px]">{t.ticker}</span>
+                <span className="text-[11px] text-muted-foreground">{t.total_trades} trades</span>
+                <span className={cn("text-[11px]", t.buy_pct > 60 ? "text-primary" : "text-down")}>
                   {t.buy_pct}% buy
                 </span>
                 <button
                   onClick={() => handleAnalyze(t.ticker)}
                   disabled={analyzing === t.ticker}
-                  style={{
-                    background: 'transparent', border: 'none', color: 'var(--accent)',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3,
-                    fontFamily: 'var(--font-mono)', fontSize: 10, padding: 0,
-                  }}
+                  className="bg-transparent border-0 text-primary cursor-pointer flex items-center gap-1 font-mono text-[11px] p-0"
                 >
                   <Zap size={10} /> {analyzing === t.ticker ? '...' : 'AI'}
                 </button>
@@ -133,82 +131,80 @@ export default function CongressTracker() {
       )}
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+      <div className="flex gap-2 mb-4 items-center">
         {(['all', 'house', 'senate'] as const).map(c => (
-          <button key={c} onClick={() => { setChamber(c); load(c) }} style={{
-            padding: '6px 14px', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
-            letterSpacing: '0.06em', textTransform: 'uppercase',
-            background: chamber === c ? 'var(--bg-3)' : 'transparent',
-            border: `1px solid ${chamber === c ? 'var(--border-bright)' : 'var(--border)'}`,
-            color: chamber === c ? 'var(--accent)' : 'var(--text-2)',
-          }}>{c}</button>
+          <button
+            key={c}
+            onClick={() => { setChamber(c); load(c) }}
+            className={cn(
+              "px-[14px] py-[6px] font-mono font-bold uppercase rounded-sm border",
+              chamber === c
+                ? "bg-accent border-primary/40 text-primary"
+                : "bg-transparent border-border text-muted-foreground"
+            )}
+            style={{ fontSize: 11, letterSpacing: '0.06em' }}
+          >
+            {c}
+          </button>
         ))}
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Filter by ticker or member..."
-          style={{
-            flex: 1, maxWidth: 280, background: 'var(--bg-0)', border: '1px solid var(--border)',
-            padding: '6px 12px', color: 'var(--text-0)', fontSize: 13, fontFamily: 'var(--font-mono)',
-          }}
+          className="flex-1 max-w-[280px] bg-background border border-border px-3 py-[6px] text-foreground text-[13px] font-mono rounded-sm"
         />
       </div>
 
       {/* Table */}
-      <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border)' }}>
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>LOADING DISCLOSURE DATA...</div>
+          <div className="p-10 text-center text-muted-foreground font-mono text-xs">LOADING DISCLOSURE DATA...</div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              <tr className="border-b border-border">
                 {['Member', 'Chamber', 'Ticker', 'Transaction', 'Amount', 'Trade Date', 'AI Signal'].map(h => (
-                  <th key={h} style={{
-                    padding: '10px 16px', textAlign: 'left',
-                    fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
-                    color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase',
-                  }}>{h}</th>
+                  <th
+                    key={h}
+                    className="px-4 py-[10px] text-left font-mono font-bold text-muted-foreground uppercase"
+                    style={{ fontSize: 11, letterSpacing: '0.08em' }}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((t, i) => (
-                <tr key={i}
-                  style={{ borderBottom: '1px solid var(--border)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-2)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <td style={{ padding: '10px 16px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 500 }}>{t.member}</div>
-                    <div style={{ fontSize: 11, color: partyColor(t.party), fontFamily: 'var(--font-mono)' }}>
+                <tr key={i} className="border-b border-border hover:bg-popover transition-colors">
+                  <td className="px-4 py-[10px]">
+                    <div className="text-[13px] font-medium">{t.member}</div>
+                    <div className="text-[11px] font-mono" style={{ color: partyColor(t.party) }}>
                       {t.party} · {t.state}
                     </div>
                   </td>
-                  <td style={{ padding: '10px 16px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-2)' }}>
+                  <td className="px-4 py-[10px] font-mono text-[11px] text-muted-foreground">
                     {t.chamber}
                   </td>
-                  <td style={{ padding: '10px 16px', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 14 }}>
+                  <td className="px-4 py-[10px] font-mono font-bold text-[14px]">
                     {t.ticker}
                   </td>
-                  <td style={{ padding: '10px 16px', fontFamily: 'var(--font-mono)', fontSize: 12, color: txColor(t.transaction) }}>
+                  <td className="px-4 py-[10px] font-mono text-xs" style={{ color: txColor(t.transaction) }}>
                     {t.transaction}
                   </td>
-                  <td style={{ padding: '10px 16px', fontSize: 12, color: 'var(--text-1)' }}>{t.amount}</td>
-                  <td style={{ padding: '10px 16px', fontSize: 12, color: 'var(--text-2)', fontFamily: 'var(--font-mono)' }}>
+                  <td className="px-4 py-[10px] text-xs text-foreground">{t.amount}</td>
+                  <td className="px-4 py-[10px] text-xs text-muted-foreground font-mono">
                     {t.date}
                   </td>
-                  <td style={{ padding: '10px 16px' }}>
+                  <td className="px-4 py-[10px]">
                     <button
                       onClick={() => handleAnalyze(t.ticker)}
                       disabled={analyzing === t.ticker}
-                      style={{
-                        padding: '4px 10px', background: 'transparent',
-                        border: '1px solid var(--border)', color: 'var(--accent)',
-                        fontFamily: 'var(--font-mono)', fontSize: 10, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 4,
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-glow)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      className={cn(
+                        "px-[10px] py-1 bg-transparent border border-border text-primary font-mono cursor-pointer flex items-center gap-1 rounded-sm",
+                        "hover:bg-primary/10"
+                      )}
+                      style={{ fontSize: 11 }}
                     >
                       <Zap size={10} />
                       {analyzing === t.ticker ? 'ANALYZING...' : 'ANALYZE'}

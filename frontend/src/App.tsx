@@ -12,7 +12,6 @@ import Admin from './pages/Admin'
 import Donate from './pages/Donate'
 import FeedbackPage from './pages/Feedback'
 import Autopilot from './pages/Autopilot'
-import PortfolioRace from './pages/PortfolioRace'
 import './index.css'
 
 function PageTracker() {
@@ -29,7 +28,7 @@ function PageTracker() {
 export default function App() {
   return (
     <TradingModeProvider>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <PageTracker />
         <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
           <Sidebar />
@@ -44,7 +43,6 @@ export default function App() {
               <Route path="/donate" element={<Donate />} />
               <Route path="/feedback" element={<FeedbackPage />} />
             <Route path="/autopilot" element={<Autopilot />} />
-            <Route path="/race" element={<PortfolioRace />} />
             </Routes>
           </main>
         </div>

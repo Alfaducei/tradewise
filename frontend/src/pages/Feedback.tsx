@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import axios from 'axios'
-import { MessageSquare, Star, Send } from 'lucide-react'
+import { Send } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { ICON } from '@/lib/icons'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -31,56 +34,55 @@ export default function FeedbackPage() {
   }
 
   if (submitted) return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 32 }}>
-      <div style={{ fontSize: 48 }}>🎉</div>
-      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, color: 'var(--accent)' }}>Thank you!</h2>
-      <p style={{ color: 'var(--text-1)', textAlign: 'center', maxWidth: 400 }}>
+    <div className="flex-1 flex items-center justify-center flex-col gap-4 p-8">
+      <div className="text-5xl">🎉</div>
+      <h2 className="font-display text-[26px] text-primary">Thank you!</h2>
+      <p className="text-foreground text-center max-w-[400px]">
         Your feedback helps us make TradeWise better for everyone.
       </p>
-      <button className="btn-outline" onClick={() => { setSubmitted(false); setMessage(''); setRating(0); setEmail('') }}>
+      <Button variant="outline" onClick={() => { setSubmitted(false); setMessage(''); setRating(0); setEmail('') }}>
         Submit more feedback
-      </button>
+      </Button>
     </div>
   )
 
   return (
-    <div className="fade-up" style={{ padding: 32, flex: 1, maxWidth: 560, margin: '0 auto', width: '100%' }}>
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <MessageSquare size={20} style={{ color: 'var(--accent)' }} />
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700 }}>Send Feedback</h1>
+    <div className="fade-up p-8 flex-1 max-w-[560px] mx-auto w-full">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-[10px]">
+          <img src={ICON.feedback} alt="" aria-hidden className="icon-white w-6 h-6" />
+          <h1 className="font-display text-[26px] font-bold">Send Feedback</h1>
         </div>
-        <p style={{ color: 'var(--text-1)', lineHeight: 1.6 }}>
+        <p className="text-foreground leading-[1.6]">
           Found a bug? Want a feature? Just want to say hi? We read everything.
         </p>
       </div>
 
       {/* Star rating */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 12, color: 'var(--text-2)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
+      <div className="mb-6">
+        <div className="font-mono text-muted-foreground uppercase mb-3" style={{ fontSize: 12, letterSpacing: '0.06em' }}>
           How are we doing?
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map(n => (
             <button
               key={n}
               onMouseEnter={() => setHovered(n)}
               onMouseLeave={() => setHovered(0)}
               onClick={() => setRating(n)}
-              style={{
-                background: 'transparent', border: 'none', padding: '4px',
-                color: n <= (hovered || rating) ? 'var(--accent)' : 'var(--text-3)',
-                fontSize: 28, transition: 'color 0.1s',
-              }}
+              className={cn(
+                "bg-transparent border-0 p-1 text-[28px] transition-colors",
+                n <= (hovered || rating) ? "text-primary" : "text-muted-foreground"
+              )}
             >★</button>
           ))}
         </div>
       </div>
 
       {/* Category */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 12, color: 'var(--text-2)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Category</div>
-        <div style={{ display: 'flex', gap: 8 }}>
+      <div className="mb-5">
+        <div className="font-mono text-muted-foreground uppercase mb-[10px]" style={{ fontSize: 12, letterSpacing: '0.06em' }}>Category</div>
+        <div className="flex gap-2">
           {[
             { value: 'general', label: '💬 General' },
             { value: 'bug', label: '🐛 Bug' },
@@ -89,56 +91,56 @@ export default function FeedbackPage() {
             <button
               key={c.value}
               onClick={() => setCategory(c.value)}
-              style={{
-                padding: '7px 14px', borderRadius: 'var(--radius-sm)',
-                background: category === c.value ? 'var(--accent-subtle)' : 'var(--bg-2)',
-                border: `1px solid ${category === c.value ? 'var(--border-bright)' : 'var(--border-subtle)'}`,
-                color: category === c.value ? 'var(--accent)' : 'var(--text-1)',
-                fontSize: 12, fontWeight: 500,
-              }}
-            >{c.label}</button>
+              className={cn(
+                "px-[14px] py-[7px] rounded-sm border text-xs font-medium",
+                category === c.value
+                  ? "bg-primary/10 border-primary/40 text-primary"
+                  : "bg-popover border-white/5 text-foreground"
+              )}
+            >
+              {c.label}
+            </button>
           ))}
         </div>
       </div>
 
       {/* Message */}
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 12, color: 'var(--text-2)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
+      <div className="mb-[18px]">
+        <div className="font-mono text-muted-foreground uppercase mb-[10px]" style={{ fontSize: 12, letterSpacing: '0.06em' }}>
           Message *
         </div>
         <textarea
-          className="input"
           placeholder="Tell us what's on your mind..."
           value={message}
           onChange={e => setMessage(e.target.value)}
           rows={5}
-          style={{ resize: 'vertical', lineHeight: 1.6 }}
+          className="w-full bg-background border border-border px-3 py-[10px] text-foreground rounded-sm resize-y leading-[1.6]"
         />
       </div>
 
       {/* Email */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ fontSize: 12, color: 'var(--text-2)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
+      <div className="mb-7">
+        <div className="font-mono text-muted-foreground uppercase mb-[10px]" style={{ fontSize: 12, letterSpacing: '0.06em' }}>
           Email (optional — for follow-up)
         </div>
         <input
-          className="input"
           type="email"
           placeholder="your@email.com"
           value={email}
           onChange={e => setEmail(e.target.value)}
+          className="w-full bg-background border border-border px-3 py-[10px] text-foreground rounded-sm"
         />
       </div>
 
-      <button
-        className="btn-primary"
+      <Button
+        size="lg"
+        className="w-full py-[13px] text-[14px] gap-2"
         onClick={handleSubmit}
         disabled={loading || !message.trim()}
-        style={{ width: '100%', padding: '13px', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
       >
         <Send size={15} />
         {loading ? 'Sending...' : 'Send Feedback'}
-      </button>
+      </Button>
     </div>
   )
 }
