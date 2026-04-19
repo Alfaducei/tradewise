@@ -1,3 +1,6 @@
+// @deprecated — replaced app-wide by lucide-react components.
+// See frontend/ICON_MAPPING.md for the PNG-key -> lucide mapping.
+// Scheduled for deletion in Batch 7 cleanup (along with LOGO_DOMAIN staying).
 // Flaticon URLs — Stock Market collection. Rendered via CSS filter.
 // Attribution in index.html and Admin footer per Flaticon free tier terms.
 export const ICON: Record<string, string> = {

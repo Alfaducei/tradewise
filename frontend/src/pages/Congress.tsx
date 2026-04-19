@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { analyzeSymbol } from '../api/client'
-import { Zap } from 'lucide-react'
+import { Zap, Landmark } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
-import { ICON, LOGO_DOMAIN } from '@/lib/icons'
+import { LOGO_DOMAIN } from '@/lib/icons'
 
 interface CongressTrade {
   chamber: string
@@ -135,7 +135,7 @@ export default function CongressTracker() {
 
       <div className="mb-2">
         <div className="flex items-center gap-3">
-          <img src={ICON.congress} alt="" aria-hidden className="icon-white w-6 h-6" />
+          <Landmark aria-hidden className="h-6 w-6 text-foreground" />
           <h1 className="text-[22px] font-semibold">Congress Tracker</h1>
         </div>
         <p className="text-muted-foreground text-[13px] mt-1">

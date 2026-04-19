@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { getRecommendations, analyzeSymbol, approveRecommendation, dismissRecommendation } from '../api/client'
-import { Brain, Check, X, AlertTriangle } from 'lucide-react'
+import { Brain, Check, X, AlertTriangle, Radio } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ICON } from '@/lib/icons'
 
 interface Rec {
   id: number
@@ -89,7 +88,7 @@ export default function Recommendations() {
 
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <img src={ICON.signals} alt="" aria-hidden className="icon-white w-6 h-6" />
+          <Radio aria-hidden className="h-6 w-6 text-foreground" />
           <h1 className="text-[22px] font-semibold">AI Signals</h1>
         </div>
         <p className="text-muted-foreground text-[13px] mt-1">

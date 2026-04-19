@@ -2,36 +2,47 @@ import { NavLink } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { useTradingMode } from '../context/TradingModeContext'
-import { ICON } from '@/lib/icons'
+import {
+  LayoutDashboard,
+  Radio,
+  Bot,
+  Landmark,
+  Eye,
+  History,
+  BarChart3,
+  MessageSquare,
+  Heart,
+  type LucideIcon,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const api = axios.create({ baseURL: '/api' })
 
-type NavItem = { to: string; icon: string; label: string; key: string }
+type NavItem = { to: string; icon: LucideIcon; label: string; key: string }
 
 const SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Overview',
     items: [
-      { to: '/',                icon: ICON.dashboard, label: 'Dashboard',  key: 'dashboard' },
-      { to: '/recommendations', icon: ICON.signals,   label: 'Signals',    key: 'signals' },
-      { to: '/autopilot',       icon: ICON.autopilot, label: 'Autopilot',  key: 'autopilot' },
+      { to: '/',                icon: LayoutDashboard, label: 'Dashboard',  key: 'dashboard' },
+      { to: '/recommendations', icon: Radio,           label: 'Signals',    key: 'signals' },
+      { to: '/autopilot',       icon: Bot,             label: 'Autopilot',  key: 'autopilot' },
     ],
   },
   {
     title: 'Research',
     items: [
-      { to: '/congress',  icon: ICON.congress,  label: 'Congress',   key: 'congress' },
-      { to: '/watchlist', icon: ICON.watchlist, label: 'Watchlist',  key: 'watchlist' },
-      { to: '/history',   icon: ICON.history,   label: 'History',    key: 'history' },
+      { to: '/congress',  icon: Landmark,  label: 'Congress',   key: 'congress' },
+      { to: '/watchlist', icon: Eye,       label: 'Watchlist',  key: 'watchlist' },
+      { to: '/history',   icon: History,   label: 'History',    key: 'history' },
     ],
   },
   {
     title: 'Account',
     items: [
-      { to: '/admin',    icon: ICON.analytics, label: 'Analytics', key: 'analytics' },
-      { to: '/feedback', icon: ICON.feedback,  label: 'Feedback',  key: 'feedback' },
-      { to: '/donate',   icon: ICON.donate,    label: 'Donate',    key: 'donate' },
+      { to: '/admin',    icon: BarChart3,      label: 'Analytics', key: 'analytics' },
+      { to: '/feedback', icon: MessageSquare,  label: 'Feedback',  key: 'feedback' },
+      { to: '/donate',   icon: Heart,          label: 'Donate',    key: 'donate' },
     ],
   },
 ]
@@ -120,7 +131,7 @@ export default function Sidebar() {
             >
               {section.title}
             </div>
-            {section.items.map(({ to, icon, label, key }) => (
+            {section.items.map(({ to, icon: Icon, label, key }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -139,11 +150,9 @@ export default function Sidebar() {
               >
                 {({ isActive }: { isActive: boolean }) => (
                   <>
-                    <img
-                      src={icon}
-                      alt=""
+                    <Icon
                       aria-hidden
-                      className={cn("w-[18px] h-[18px] flex-shrink-0", isActive ? "icon-accent" : "icon-white")}
+                      className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-primary" : "text-foreground")}
                     />
                     <span className="flex-1">{label}</span>
                     {key === 'signals' && signalCount > 0 && (

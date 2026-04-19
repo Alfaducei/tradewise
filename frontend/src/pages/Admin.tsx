@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { Users, Eye, DollarSign, TrendingUp, ExternalLink } from 'lucide-react'
+import { Users, Eye, DollarSign, TrendingUp, ExternalLink, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ICON } from '@/lib/icons'
 
 const api = axios.create({ baseURL: '/api' })
 const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n)
@@ -34,7 +33,7 @@ export default function AdminDashboard() {
     <div className="fade-in p-7 flex-1 overflow-y-auto">
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <img src={ICON.analytics} alt="" aria-hidden className="icon-white w-6 h-6" />
+          <BarChart3 aria-hidden className="h-6 w-6 text-foreground" />
           <h1 className="text-[22px] font-semibold">Admin Dashboard</h1>
         </div>
         <p className="text-muted-foreground text-[13px] mt-1">Visitors · Donations · Trade stats</p>

@@ -1,11 +1,10 @@
 import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
-import { Play, Square, Settings, AlertTriangle } from 'lucide-react'
+import { Play, Square, Settings, AlertTriangle, Bot } from 'lucide-react'
 import { AIBrain, type ThinkingPhase, type AIDecision } from '../components/AIBrain'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ICON } from '@/lib/icons'
 import { drawTradeMarker, flattenLastNMarkers, onLogoLoaded, drawSmoothPath, formatTimeTick } from '@/lib/trade-markers'
 
 const api = axios.create({ baseURL: '/api' })
@@ -402,7 +401,7 @@ export default function Autopilot() {
       {/* Top bar */}
       <div className="px-5 py-[14px] border-b border-white/5 flex justify-between items-center flex-shrink-0 flex-wrap gap-[10px]">
         <div className="flex items-center gap-3">
-          <img src={ICON.autopilot} alt="" aria-hidden className="icon-white w-6 h-6" />
+          <Bot aria-hidden className="h-6 w-6 text-foreground" />
           <h1 className="font-display font-extrabold text-[21px]" style={{ letterSpacing: '-0.03em' }}>Autopilot</h1>
           {isRunning
             ? <Badge variant="live">LIVE · C{status?.cycle_count}</Badge>

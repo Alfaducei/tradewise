@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import axios from 'axios'
-import { Send } from 'lucide-react'
+import { Send, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ICON } from '@/lib/icons'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -50,7 +49,7 @@ export default function FeedbackPage() {
     <div className="fade-up p-8 flex-1 max-w-[560px] mx-auto w-full">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-[10px]">
-          <img src={ICON.feedback} alt="" aria-hidden className="icon-white w-6 h-6" />
+          <MessageSquare aria-hidden className="h-6 w-6 text-foreground" />
           <h1 className="font-display text-[26px] font-bold">Send Feedback</h1>
         </div>
         <p className="text-foreground leading-[1.6]">
