@@ -30,9 +30,12 @@ def reset() -> None:
 
 
 def _tick_prices() -> None:
-    """Random walk held positions so unrealized P&L animates between cycles."""
+    """Random walk held positions so unrealized P&L animates between cycles.
+    Volatility is intentionally higher than real markets (±1%/tick) so that
+    stop-loss and take-profit triggers fire regularly in a short sim and
+    positions actually cycle rather than sit frozen."""
     for pos in _state["positions"].values():
-        drift = random.uniform(-0.003, 0.003)  # ±0.3% per read
+        drift = random.uniform(-0.01, 0.01)  # ±1% per read
         pos["current_price"] = max(0.01, pos["current_price"] * (1 + drift))
 
 

@@ -323,6 +323,28 @@ async def _run_cycle():
     except Exception:
         pass
 
+    # ── Step 2b (sim only): Portfolio rotation ─────────────────────────────
+    # In demo mode, keep the trading activity alive even when no stops fire:
+    # ~40% of cycles trim one held position so we can open a fresh one next
+    # cycle. Prefer the weakest (most-negative unrealized P&L) to mimic
+    # "cutting losers" behavior. This makes the sim buy/sell regularly.
+    if demo and trades and random.random() < 0.40:
+        worst = min(trades, key=lambda p: p.get("unrealized_plpc", 0))
+        await _execute_decision(
+            db_session=None, cycle=cycle, symbol=worst["symbol"],
+            decision="SELL", quantity=worst["qty"],
+            price=worst["current_price"], confidence=1.0,
+            reason=f"Sim rotation: trimming {worst['symbol']} ({worst['unrealized_plpc']:.1f}%) to explore new opportunities",
+            side="SELL", demo=demo,
+        )
+        # Refresh trades after the rotation sell
+        try:
+            trades = broker.get_trades("paper")
+            account = broker.get_account("paper")
+            cash = account["cash"]
+        except Exception:
+            pass
+
     # Don't open new trades if already at max
     if len(trades) >= config["max_trades"]:
         logger.info(f"[Cycle {cycle}] At max trades ({config['max_trades']}), skipping new entries")
