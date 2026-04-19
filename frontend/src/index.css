@@ -171,4 +171,30 @@
     font-size: 14px;
     line-height: 1.5;
   }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #2e3050 transparent;
+  }
+
+  /* WebKit / Chromium / Edge */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2e3050;
+    border-radius: 99px;
+    transition: background 0.15s;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a3c5c;
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
