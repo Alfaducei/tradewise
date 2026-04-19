@@ -12,20 +12,23 @@ import uuid
 from datetime import datetime, timezone
 from services.market_data import get_market_data
 
-_STARTING_CASH = 100_000.0
+_DEFAULT_STARTING_CASH = 100_000.0
 
 _state: dict = {
-    "cash": _STARTING_CASH,
-    "start_equity": _STARTING_CASH,
-    "last_equity": _STARTING_CASH,
+    "cash": _DEFAULT_STARTING_CASH,
+    "start_equity": _DEFAULT_STARTING_CASH,
+    "last_equity": _DEFAULT_STARTING_CASH,
     "positions": {},  # symbol -> {"qty": float, "avg_entry_price": float, "current_price": float}
 }
 
 
-def reset() -> None:
-    _state["cash"] = _STARTING_CASH
-    _state["start_equity"] = _STARTING_CASH
-    _state["last_equity"] = _STARTING_CASH
+def reset(starting_cash: float | None = None) -> None:
+    """Reset the sim to a clean state. If starting_cash is given, use it as
+    the portfolio's starting balance; otherwise fall back to the default."""
+    cash = float(starting_cash) if starting_cash and starting_cash > 0 else _DEFAULT_STARTING_CASH
+    _state["cash"] = cash
+    _state["start_equity"] = cash
+    _state["last_equity"] = cash
     _state["positions"] = {}
 
 

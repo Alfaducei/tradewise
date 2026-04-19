@@ -477,7 +477,27 @@ export default function Autopilot() {
               </div>
             ))}
           </div>
-          <div className="flex justify-end gap-2">
+          {/* Sim-only: starting cash — free-form numeric, $10 – $1,000,000.
+              Changing this resets the sim broker on Save. */}
+          {status?.config?.demo_mode && (
+            <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-3">
+              <div className="section-label flex-shrink-0 w-[110px]">Sim Starting $</div>
+              <input
+                type="number"
+                min={10}
+                max={1_000_000}
+                step={10}
+                value={config.sim_starting_cash ?? 100000}
+                onChange={e => setConfig((c: any) => ({ ...c, sim_starting_cash: Math.max(10, Number(e.target.value) || 10) }))}
+                className="w-[140px] bg-background border border-border px-2 py-[6px] rounded-sm text-foreground font-mono text-[13px]"
+                disabled={isRunning}
+              />
+              <span className="text-muted-foreground text-[11px] font-mono">
+                {isRunning ? 'Stop the agent to change' : 'Fractional shares supported — min $10'}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-end gap-2 mt-3">
             <Button variant="outline" size="sm" onClick={() => setShowConfig(false)}>Cancel</Button>
             <Button size="sm" onClick={async () => { await api.patch('/autopilot/config', config); setShowConfig(false); await load() }}>Save</Button>
           </div>
@@ -532,7 +552,7 @@ export default function Autopilot() {
                   {(status.trades as any[]).map((p: any) => (
                     <tr key={p.symbol}>
                       <td className="font-display font-extrabold text-[12px]">{p.symbol}</td>
-                      <td className="font-mono text-muted-foreground text-[12px]">{p.qty}</td>
+                      <td className="font-mono text-muted-foreground text-[12px]">{p.qty >= 1 ? Number(p.qty).toFixed(0) : Number(p.qty).toFixed(4)}</td>
                       <td className="font-mono text-muted-foreground text-[12px]">{fmtUSD(p.avg_entry_price)}</td>
                       <td className={cn("font-mono text-[12px]", p.unrealized_pl >= 0 ? "text-up" : "text-down")}>
                         {p.unrealized_pl >= 0 ? '+' : ''}{fmtUSD(p.unrealized_pl)}

@@ -14,6 +14,7 @@ class AgentConfig(BaseModel):
     cycle_interval_seconds: Optional[int] = None
     min_confidence: Optional[float] = None
     demo_mode: Optional[bool] = None
+    sim_starting_cash: Optional[float] = None
 
 
 @router.post("/start")

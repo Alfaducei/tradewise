@@ -46,9 +46,10 @@ async def start_agent() -> dict:
         if state.is_running:
             return {"ok": False, "reason": "Agent already running"}
         demo = bool(getattr(state, "demo_mode", False))
+        sim_cash = float(getattr(state, "sim_starting_cash", 100000.0) or 100000.0)
 
         if demo:
-            sim_broker.reset()
+            sim_broker.reset(sim_cash)
 
         try:
             account = _broker(demo).get_account("paper")
@@ -172,6 +173,7 @@ async def get_agent_status() -> dict:
                 "cycle_interval_seconds": state.cycle_interval_seconds,
                 "min_confidence": state.min_confidence,
                 "demo_mode": demo,
+                "sim_starting_cash": float(getattr(state, "sim_starting_cash", 100000.0) or 100000.0),
             },
             "portfolio": account,
             "trades": trades,
@@ -197,6 +199,7 @@ async def update_config(config: dict) -> dict:
     async with AsyncSessionLocal() as db:
         state = await _get_or_create_state(db)
         was_demo = bool(getattr(state, "demo_mode", False))
+        was_cash = float(getattr(state, "sim_starting_cash", 100000.0) or 100000.0)
 
         # If turning demo on, auto-shorten the cycle so the UI looks alive
         # (unless the caller explicitly set a cycle in the same request).
@@ -210,13 +213,13 @@ async def update_config(config: dict) -> dict:
         await db.commit()
 
         demo_now = bool(getattr(state, "demo_mode", False))
+        cash_now = float(getattr(state, "sim_starting_cash", 100000.0) or 100000.0)
 
-    # If demo_mode was toggled (either direction), clear sim state + wipe
-    # session history so the chart/decision feed don't show cross-mode
-    # traces, and reset the tracked starting equity so the next read pulls
-    # fresh numbers from the correct broker.
-    if was_demo != demo_now:
-        sim_broker.reset()
+    # Reset sim state whenever demo_mode toggles OR the sim starting cash
+    # changes — both conceptually start a fresh sim run.
+    should_reset_sim = (was_demo != demo_now) or (demo_now and was_cash != cash_now)
+    if should_reset_sim:
+        sim_broker.reset(cash_now if demo_now else None)
         _start_equity = None
         async with AsyncSessionLocal() as db:
             await db.execute(delete(PerformanceSnapshot))
@@ -407,11 +410,21 @@ async def _run_cycle():
             )
             continue
 
-        # Size trade: lesser of max_trade_pct of equity, or available cash
-        affordable_qty = int(min(max_trade_value, cash * 0.95) / price) if price > 0 else 0
+        # Size trade: lesser of max_trade_pct of equity, or available cash.
+        # In demo mode allow fractional shares (4 decimals) so small starting
+        # balances ($20, $100) can still hold positions in expensive stocks.
+        if price > 0:
+            raw = min(max_trade_value, cash * 0.95) / price
+            if demo:
+                affordable_qty = round(raw, 4)
+            else:
+                affordable_qty = float(int(raw))
+        else:
+            affordable_qty = 0.0
         qty = min(affordable_qty, analysis.get("quantity", affordable_qty))
 
-        if qty <= 0:
+        min_qty = 0.0001 if demo else 1
+        if qty < min_qty:
             await _record_decision(cycle, symbol, "SKIP", "Insufficient cash for trade", qty, price, confidence, False)
             continue
 
