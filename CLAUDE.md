@@ -32,3 +32,16 @@
 2. If component exists, run: cd frontend && npx shadcn@latest add <n>
 3. If not, compose from existing shadcn primitives
 4. Last resort: hand-build using shadcn tokens only
+
+## Tradewise-specific overrides
+- Forms: React Hook Form + Zod + <Controller> + <Field>. No native <form> + useState for new forms.
+- Icons: lucide-react only. The Flaticon PNG set (ICON object in src/lib/icons.ts, .icon-white / .icon-accent filters in index.css) is being retired — see frontend/ICON_MAPPING.md for the target lucide components per call site. LOGO_DOMAIN (Clearbit company-logo map) stays.
+- Light mode: deferred. The app is dark-only. index.css has no :root light tokens and no ThemeProvider is mounted. Do not add a .dark class toggle until light tokens are defined.
+- baseColor: neutral (locked in components.json — cannot change without re-adding every shadcn component).
+- Financial semantics — never override via theme swap:
+  - --color-up = buy / positive performance (green)
+  - --color-down = negative performance (red)
+  - --color-amber = sell (orange)
+- Canvas visuals (AIBrain, Autopilot Live Race): resolve colors at draw time via the cssColor() helper (`getComputedStyle(document.documentElement).getPropertyValue('--color-*')`). Never hardcode hex / rgba in ctx.fillStyle or font-family strings in ctx.font — read --font-mono from the root instead.
+- Autopilot.tsx (757 LOC) must be split into AutopilotTopBar / AutopilotConfig / AutopilotLiveRace / AutopilotTradeLog as a behaviour-preserving Batch 5a before the primitive migration (Batch 5b).
+- Setpoints.tsx archived to frontend/src/_deprecated/ — re-evaluate during Batch 5 for the Autopilot config panel. If not adopted by Batch 7, delete.
