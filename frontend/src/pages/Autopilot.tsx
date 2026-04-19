@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ICON } from '@/lib/icons'
-import { drawTradeMarker, flattenLastNMarkers, onLogoLoaded } from '@/lib/trade-markers'
+import { drawTradeMarker, flattenLastNMarkers, onLogoLoaded, drawSmoothPath, formatTimeTick } from '@/lib/trade-markers'
 
 const api = axios.create({ baseURL: '/api' })
 const fmtUSD = (n: number) => '$' + (n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -59,6 +59,8 @@ export default function Autopilot() {
   const chartWrap = useRef<HTMLDivElement>(null)
   const seriesMap = useRef<Map<string, Series>>(new Map())
   const snapshots = useRef<any[]>([])
+  const markerHits = useRef<Array<{ x: number; y: number; trades: any[]; actionColor: string }>>([])
+  const [hoverTip, setHoverTip] = useState<{ x: number; y: number; trades: any[]; actionColor: string } | null>(null)
 
   const isRunning = status?.is_running ?? false
   const pnl = status?.pnl_since_start ?? 0
@@ -146,6 +148,7 @@ export default function Autopilot() {
     ctx.clearRect(0, 0, W, H)
     ctx.fillStyle = CARD
     ctx.fillRect(0, 0, W, H)
+    markerHits.current = []
 
     const allS = [...seriesMap.current.values()].filter(s => s.points.length > 1)
     if (!allS.length) {
@@ -180,20 +183,31 @@ export default function Autopilot() {
       const pts = s.points, len = pts.length
       if (len < 2) return
 
+      const coords = pts.map((p, i) => ({ x: toX(i, len), y: toY(p.value) }))
+
+      // Area fill under the smooth curve
       ctx.beginPath()
-      pts.forEach((p, i) => { const x = toX(i, len), y = toY(p.value); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y) })
-      ctx.lineTo(toX(len - 1, len), toY(0)); ctx.lineTo(toX(0, len), toY(0)); ctx.closePath()
+      drawSmoothPath(ctx, coords)
+      ctx.lineTo(coords[len - 1].x, toY(0))
+      ctx.lineTo(coords[0].x, toY(0))
+      ctx.closePath()
       ctx.fillStyle = s.color + '12'; ctx.fill()
 
+      // Smooth stroke line
       ctx.beginPath()
-      pts.forEach((p, i) => { const x = toX(i, len), y = toY(p.value); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y) })
+      drawSmoothPath(ctx, coords)
       ctx.strokeStyle = s.color; ctx.lineWidth = s.name === 'Portfolio' ? 2.5 : 1.8
-      ctx.lineJoin = 'round'; ctx.stroke()
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke()
 
-      // Only render the last 4 trade events across this series so the chart
-      // stays readable even after many cycles.
+      // Only render the last 4 trade groups across this series so the chart
+      // stays readable even after many cycles. Each group = one cycle's trades;
+      // we show one marker per group with a "+N" badge and a hover tooltip
+      // listing every trade.
       const markers = flattenLastNMarkers(pts, 4, toX, toY, ACTION_COLOR, ACTION_ICON)
-      markers.forEach(m => drawTradeMarker(ctx, m, CARD))
+      markers.forEach(m => {
+        drawTradeMarker(ctx, m, CARD)
+        markerHits.current.push({ x: m.x, y: m.y - 26, trades: m.trades, actionColor: m.actionColor })
+      })
 
       const lx = toX(len - 1, len), lv = pts.at(-1)!.value, ly = toY(lv)
       ctx.fillStyle = CARD; ctx.beginPath(); ctx.arc(lx, ly, 5, 0, Math.PI * 2); ctx.fill()
@@ -204,6 +218,22 @@ export default function Autopilot() {
       ctx.fillStyle = lv >= 0 ? UP : DOWN
       ctx.fillText((lv >= 0 ? '+' : '') + lv.toFixed(2) + '%', lx + 8, ly + 9)
     })
+
+    // X-axis time ticks from snapshot timestamps (max ~5 labels so they don't crowd)
+    const snaps = snapshots.current
+    const nSnaps = snaps.length
+    if (nSnaps >= 2) {
+      const tickEvery = Math.max(1, Math.floor(nSnaps / 5))
+      ctx.fillStyle = MUTED + '66'
+      ctx.font = '500 11px Geist Mono, monospace'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'alphabetic'
+      snaps.forEach((s: any, i: number) => {
+        if (i % tickEvery !== 0 && i !== nSnaps - 1) return
+        const x = PAD.left + (i / Math.max(nSnaps - 1, 1)) * cW
+        ctx.fillText(formatTimeTick(s.time), x, H - 8)
+      })
+    }
   }
 
   useEffect(() => {
@@ -382,7 +412,7 @@ export default function Autopilot() {
           <div className="grid grid-cols-6 gap-[14px] mb-3">
             {[
               { key: 'max_trades', label: 'Max Pos', min: 1, max: 20, step: 1, fmt: (v: number) => String(v) },
-              { key: 'cycle_interval_seconds', label: 'Cycle', min: 60, max: 3600, step: 60, fmt: (v: number) => `${v}s` },
+              { key: 'cycle_interval_seconds', label: 'Cycle', min: 15, max: 3600, step: 15, fmt: (v: number) => v >= 60 ? `${Math.round(v / 60)}m` : `${v}s` },
               { key: 'min_confidence', label: 'Confidence', min: 0.4, max: 0.95, step: 0.05, fmt: (v: number) => `${(v * 100).toFixed(0)}%` },
               { key: 'max_trade_pct', label: 'Max Pos %', min: 0.02, max: 0.3, step: 0.01, fmt: (v: number) => `${(v * 100).toFixed(0)}%` },
               { key: 'stop_loss_pct', label: 'Stop Loss', min: 0.01, max: 0.2, step: 0.01, fmt: (v: number) => `−${(v * 100).toFixed(0)}%` },
@@ -521,13 +551,31 @@ export default function Autopilot() {
           )}
 
           {/* Chart canvas */}
-          <div className="bg-card border border-white/5 rounded-lg flex-1 min-h-0 overflow-hidden relative" ref={chartWrap}>
+          <div
+            className="bg-card border border-white/5 rounded-lg flex-1 min-h-0 overflow-hidden relative"
+            ref={chartWrap}
+            onMouseMove={e => {
+              const canvas = chartRef.current
+              if (!canvas) return
+              const rect = canvas.getBoundingClientRect()
+              const mx = e.clientX - rect.left
+              const my = e.clientY - rect.top
+              let best: typeof hoverTip = null
+              let bestD = 22 // hit radius in px
+              for (const h of markerHits.current) {
+                const d = Math.hypot(h.x - mx, h.y - my)
+                if (d < bestD) { bestD = d; best = h }
+              }
+              setHoverTip(best)
+            }}
+            onMouseLeave={() => setHoverTip(null)}
+          >
             <canvas ref={chartRef} className="block w-full h-full" />
             <div className="absolute top-[10px] left-[14px] font-display font-bold text-[13px]">Live Race</div>
             <div className="absolute top-[11px] right-[14px]">
               <span className="section-label">{snapshots.current.length} snapshots</span>
             </div>
-            <div className="absolute bottom-2 left-[14px] flex gap-3 flex-wrap">
+            <div className="absolute bottom-[26px] left-[14px] flex gap-3 flex-wrap">
               {Object.entries(ACTION_COLOR).map(([action, color]) => (
                 <div key={action} className="flex items-center gap-1">
                   <div
@@ -540,6 +588,44 @@ export default function Autopilot() {
                 </div>
               ))}
             </div>
+
+            {/* Hover tooltip listing every trade at this marker */}
+            {hoverTip && (
+              <div
+                className="absolute z-20 pointer-events-none bg-popover rounded-lg shadow-[0_8px_28px_rgb(0_0_0/0.55)] p-2"
+                style={{
+                  left: Math.min(hoverTip.x + 18, 1000),
+                  top: Math.max(hoverTip.y - 12 - hoverTip.trades.length * 18, 8),
+                  border: `1px solid ${hoverTip.actionColor}55`,
+                  minWidth: 160,
+                }}
+              >
+                <div className="font-mono text-muted-foreground uppercase mb-1" style={{ fontSize: 10, letterSpacing: '0.08em' }}>
+                  {hoverTip.trades.length} {hoverTip.trades.length === 1 ? 'trade' : 'trades'} this cycle
+                </div>
+                {hoverTip.trades.map((t: any, i: number) => {
+                  const col = ACTION_COLOR[t.action] ?? 'var(--color-muted-foreground)'
+                  return (
+                    <div key={i} className="flex items-center gap-2 py-[2px]">
+                      <span
+                        className="font-mono font-bold uppercase inline-block w-[44px]"
+                        style={{ fontSize: 11, color: col, letterSpacing: '0.06em' }}
+                      >
+                        {t.action.replace('_', ' ')}
+                      </span>
+                      <span className="font-display font-extrabold text-foreground" style={{ fontSize: 12 }}>
+                        {t.symbol}
+                      </span>
+                      {t.price && (
+                        <span className="font-mono font-medium text-muted-foreground ml-auto" style={{ fontSize: 11 }}>
+                          ${Number(t.price).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {/* Risk rules */}

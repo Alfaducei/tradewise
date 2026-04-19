@@ -34,13 +34,21 @@ export function getLogo(symbol: string): HTMLImageElement | null {
   return null
 }
 
+export interface TradeInfo {
+  symbol: string
+  action: string
+  price?: number
+  quantity?: number
+}
+
 export interface TradeMarker {
   x: number          // series X on canvas
   y: number          // series Y on canvas
-  symbol: string
-  action: string     // BUY | SELL | STOP_LOSS | TAKE_PROFIT
+  trades: TradeInfo[]
+  // "Primary" (latest in the group) used for ring color + inner logo
+  primary: TradeInfo
   actionColor: string
-  actionIcon: string // ▲ ▼ ✕ ★
+  actionIcon: string
 }
 
 /**
@@ -57,7 +65,7 @@ export function drawTradeMarker(
   m: TradeMarker,
   cardColor: string,
 ) {
-  const { x, y, symbol, actionColor, actionIcon } = m
+  const { x, y, trades, primary, actionColor, actionIcon } = m
   const markerCy = y - 26 // lift the circle ~26px above the line
   const OUTER_R = 14
   const BADGE_R = 7
@@ -80,7 +88,7 @@ export function drawTradeMarker(
   ctx.beginPath(); ctx.arc(x, markerCy, OUTER_R, 0, Math.PI * 2); ctx.stroke()
 
   // Clip to inner logo area and draw logo if available; else letter fallback
-  const logo = getLogo(symbol)
+  const logo = getLogo(primary.symbol)
   ctx.save()
   ctx.beginPath(); ctx.arc(x, markerCy, OUTER_R - 2, 0, Math.PI * 2); ctx.clip()
   if (logo) {
@@ -91,7 +99,7 @@ export function drawTradeMarker(
     ctx.font = '700 14px Geist Mono, monospace'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(symbol[0] ?? '?', x, markerCy + 0.5)
+    ctx.fillText(primary.symbol[0] ?? '?', x, markerCy + 0.5)
   }
   ctx.restore()
 
@@ -109,21 +117,76 @@ export function drawTradeMarker(
   ctx.textBaseline = 'middle'
   ctx.fillText(actionIcon, bx, by + 0.5)
 
-  // Symbol label above marker
+  // "+N" group badge top-left when multiple trades fired at this point
+  if (trades.length > 1) {
+    const gx = x - OUTER_R + 2
+    const gy = markerCy - OUTER_R + 2
+    ctx.fillStyle = actionColor
+    ctx.beginPath(); ctx.arc(gx, gy, 8, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = '#0e0f18'
+    ctx.font = '700 10px Geist Mono, monospace'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(`+${trades.length - 1}`, gx, gy + 0.5)
+  }
+
+  // Symbol label above marker (primary shown; tooltip on hover lists all)
   ctx.fillStyle = actionColor
   ctx.font = '700 11px Geist Mono, monospace'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'alphabetic'
-  ctx.fillText(symbol, x, markerCy - OUTER_R - 4)
+  ctx.fillText(primary.symbol, x, markerCy - OUTER_R - 4)
 }
 
 /**
- * Flatten a series' points+trades into chronologically ordered individual
- * trade events. Returns only the most recent 4 so the chart stays readable.
+ * Trace a smooth quadratic-bezier path through a set of (x,y) points.
+ * Each original point is used as a control point; the endpoint is the
+ * midpoint to the next point — classic "smooth chart line" technique
+ * that passes near every point without visible kinks.
+ *
+ * Caller is responsible for beginPath() and fill/stroke.
+ */
+export function drawSmoothPath(ctx: CanvasRenderingContext2D, coords: { x: number; y: number }[]) {
+  if (coords.length === 0) return
+  if (coords.length === 1) {
+    ctx.moveTo(coords[0].x, coords[0].y)
+    return
+  }
+  ctx.moveTo(coords[0].x, coords[0].y)
+  for (let i = 1; i < coords.length - 1; i++) {
+    const midX = (coords[i].x + coords[i + 1].x) / 2
+    const midY = (coords[i].y + coords[i + 1].y) / 2
+    ctx.quadraticCurveTo(coords[i].x, coords[i].y, midX, midY)
+  }
+  const last = coords[coords.length - 1]
+  ctx.lineTo(last.x, last.y)
+}
+
+/**
+ * Format an ISO timestamp string into HH:MM:SS local time for chart X ticks.
+ */
+export function formatTimeTick(iso: string | undefined): string {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    const hh = String(d.getHours()).padStart(2, '0')
+    const mm = String(d.getMinutes()).padStart(2, '0')
+    const ss = String(d.getSeconds()).padStart(2, '0')
+    return `${hh}:${mm}:${ss}`
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Group a series' points+trades by chart position and return the most-recent N
+ * groups (one marker per cycle that had any trades). Each group carries the full
+ * trade list so the hover tooltip can expand it, while the on-canvas render
+ * shows just one circle per position with a "+N" badge if more than one.
  */
 export interface SeriesPointWithTrades {
   value: number
-  trades?: { symbol: string; action: string }[]
+  trades?: TradeInfo[]
 }
 export function flattenLastNMarkers<P extends SeriesPointWithTrades>(
   pts: P[],
@@ -136,16 +199,14 @@ export function flattenLastNMarkers<P extends SeriesPointWithTrades>(
   const out: TradeMarker[] = []
   pts.forEach((p, i) => {
     if (!p.trades?.length) return
-    const x = toX(i, pts.length)
-    const y = toY(p.value)
-    p.trades.forEach(t => {
-      out.push({
-        x, y,
-        symbol: t.symbol,
-        action: t.action,
-        actionColor: actionColors[t.action] ?? '#aaa',
-        actionIcon: actionIcons[t.action] ?? '●',
-      })
+    const primary = p.trades[p.trades.length - 1] // newest in the batch
+    out.push({
+      x: toX(i, pts.length),
+      y: toY(p.value),
+      trades: p.trades,
+      primary,
+      actionColor: actionColors[primary.action] ?? '#aaa',
+      actionIcon: actionIcons[primary.action] ?? '●',
     })
   })
   return out.slice(-n)

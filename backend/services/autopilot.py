@@ -188,8 +188,8 @@ async def update_config(config: dict) -> dict:
         # If turning demo on, auto-shorten the cycle so the UI looks alive
         # (unless the caller explicitly set a cycle in the same request).
         if config.get("demo_mode") is True and "cycle_interval_seconds" not in config:
-            if state.cycle_interval_seconds > 60:
-                state.cycle_interval_seconds = 60
+            if state.cycle_interval_seconds > 15:
+                state.cycle_interval_seconds = 15
 
         for key, val in config.items():
             if hasattr(state, key):
