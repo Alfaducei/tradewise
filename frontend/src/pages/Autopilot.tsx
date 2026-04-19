@@ -147,7 +147,7 @@ export default function Autopilot() {
     const W = canvas.width, H = canvas.height
     if (!W || !H) return
 
-    const PAD = { top: 28, right: 110, bottom: 28, left: 52 }
+    const PAD = { top: 28, right: 130, bottom: 40, left: 52 }
     const cW = W - PAD.left - PAD.right
     const cH = H - PAD.top - PAD.bottom
 
@@ -211,23 +211,48 @@ export default function Autopilot() {
       ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke()
 
       // Only render the last 4 trade groups across this series so the chart
-      // stays readable even after many cycles. Each group = one cycle's trades;
-      // we show one marker per group with a "+N" badge and a hover tooltip
-      // listing every trade.
+      // stays readable even after many cycles.
       const markers = flattenLastNMarkers(pts, 4, toX, toY, ACTION_COLOR, ACTION_ICON)
       markers.forEach(m => {
         drawTradeMarker(ctx, m, CARD)
         markerHits.current.push({ x: m.x, y: m.y - 26, trades: m.trades, actionColor: m.actionColor })
       })
+    })
 
-      const lx = toX(len - 1, len), lv = pts.at(-1)!.value, ly = toY(lv)
-      ctx.fillStyle = CARD; ctx.beginPath(); ctx.arc(lx, ly, 5, 0, Math.PI * 2); ctx.fill()
-      ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(lx, ly, 3.5, 0, Math.PI * 2); ctx.fill()
-      ctx.fillStyle = s.color; ctx.font = 'bold 11px Geist Mono, monospace'
+    // ── Series end-label pass (collision avoidance) ─────────────────────
+    // Collect all end-points, sort by Y, then lay out labels with a minimum
+    // vertical gap so "S&P 500" and "MSFT" can't stomp on each other.
+    const labels = allS
+      .filter(s => s.points.length > 1)
+      .map(s => {
+        const pts = s.points, len = pts.length
+        const lv = pts.at(-1)!.value
+        return { s, x: toX(len - 1, len), rawY: toY(lv), y: 0, value: lv }
+      })
+    labels.sort((a, b) => a.rawY - b.rawY)
+    const LABEL_H = 22
+    labels.forEach((l, i) => {
+      l.y = i === 0 ? l.rawY : Math.max(labels[i - 1].y + LABEL_H, l.rawY)
+    })
+    labels.forEach(l => {
+      // Dot at the true series endpoint
+      ctx.fillStyle = CARD
+      ctx.beginPath(); ctx.arc(l.x, l.rawY, 5, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = l.s.color
+      ctx.beginPath(); ctx.arc(l.x, l.rawY, 3.5, 0, Math.PI * 2); ctx.fill()
+      // Leader line if we had to push the label off its natural Y
+      if (Math.abs(l.y - l.rawY) > 4) {
+        ctx.strokeStyle = l.s.color + '55'
+        ctx.lineWidth = 1
+        ctx.beginPath(); ctx.moveTo(l.x + 4, l.rawY); ctx.lineTo(l.x + 10, l.y - 3); ctx.stroke()
+      }
+      // Name + %
       ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
-      ctx.fillText(s.name.length > 7 ? s.name.slice(0, 6) : s.name, lx + 8, ly - 2)
-      ctx.fillStyle = lv >= 0 ? UP : DOWN
-      ctx.fillText((lv >= 0 ? '+' : '') + lv.toFixed(2) + '%', lx + 8, ly + 9)
+      ctx.fillStyle = l.s.color
+      ctx.font = 'bold 11px Geist Mono, monospace'
+      ctx.fillText(l.s.name.length > 10 ? l.s.name.slice(0, 9) + '…' : l.s.name, l.x + 10, l.y - 2)
+      ctx.fillStyle = l.value >= 0 ? UP : DOWN
+      ctx.fillText((l.value >= 0 ? '+' : '') + l.value.toFixed(2) + '%', l.x + 10, l.y + 10)
     })
 
     // X-axis time ticks from snapshot timestamps (max ~5 labels so they don't crowd)

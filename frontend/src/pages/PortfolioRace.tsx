@@ -151,7 +151,7 @@ export default function PortfolioRace() {
     const ctx = canvas.getContext('2d')!
     const W = canvas.width, H = canvas.height
     if (!W || !H) return
-    const PAD = { top: 24, right: 130, bottom: 36, left: 58 }
+    const PAD = { top: 24, right: 150, bottom: 36, left: 58 }
     const cW = W - PAD.left - PAD.right
     const cH = H - PAD.top - PAD.bottom
 
@@ -238,22 +238,40 @@ export default function PortfolioRace() {
         drawTradeMarker(ctx, m, CARD)
         markerHits.current.push({ x: m.x, y: m.y - 26, trades: m.trades, actionColor: m.actionColor })
       })
+    })
 
-      const lastX = toX(len - 1, len)
-      const lastY = toY(pts.at(-1)!.value)
+    // ── Series end-label pass (collision avoidance) ─────────────────────
+    // Stack labels vertically with a min gap so nearby series don't collide.
+    const labels = allSeries
+      .filter(s => s.points.length > 1)
+      .map(s => {
+        const pts = s.points, lv = pts.at(-1)!.value
+        return { s, x: toX(pts.length - 1, pts.length), rawY: toY(lv), y: 0, value: lv }
+      })
+    labels.sort((a, b) => a.rawY - b.rawY)
+    const LABEL_H = 24
+    labels.forEach((l, i) => {
+      l.y = i === 0 ? l.rawY : Math.max(labels[i - 1].y + LABEL_H, l.rawY)
+    })
+    labels.forEach(l => {
+      // Dot at the true endpoint
       ctx.fillStyle = CARD
-      ctx.beginPath(); ctx.arc(lastX, lastY, 5, 0, Math.PI * 2); ctx.fill()
-      ctx.fillStyle = s.color
-      ctx.beginPath(); ctx.arc(lastX, lastY, 3.5, 0, Math.PI * 2); ctx.fill()
-
-      const lastVal = pts.at(-1)!.value
-      const sign = lastVal >= 0 ? '+' : ''
+      ctx.beginPath(); ctx.arc(l.x, l.rawY, 5, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = l.s.color
+      ctx.beginPath(); ctx.arc(l.x, l.rawY, 3.5, 0, Math.PI * 2); ctx.fill()
+      // Leader line if the label had to shift
+      if (Math.abs(l.y - l.rawY) > 4) {
+        ctx.strokeStyle = l.s.color + '55'
+        ctx.lineWidth = 1
+        ctx.beginPath(); ctx.moveTo(l.x + 4, l.rawY); ctx.lineTo(l.x + 10, l.y - 3); ctx.stroke()
+      }
+      const sign = l.value >= 0 ? '+' : ''
       ctx.textAlign = 'left'
-      ctx.fillStyle = s.color
-      ctx.font = `bold 11px Geist Mono, monospace`
-      ctx.fillText(s.name.length > 8 ? s.name.slice(0, 7) : s.name, lastX + 9, lastY - 3)
-      ctx.fillStyle = lastVal >= 0 ? UP : DOWN
-      ctx.fillText(`${sign}${lastVal.toFixed(2)}%`, lastX + 9, lastY + 9)
+      ctx.fillStyle = l.s.color
+      ctx.font = 'bold 11px Geist Mono, monospace'
+      ctx.fillText(l.s.name.length > 10 ? l.s.name.slice(0, 9) + '…' : l.s.name, l.x + 10, l.y - 3)
+      ctx.fillStyle = l.value >= 0 ? UP : DOWN
+      ctx.fillText(`${sign}${l.value.toFixed(2)}%`, l.x + 10, l.y + 10)
     })
 
     // X-axis time ticks from snapshot timestamps — replaces old cycle numbers
