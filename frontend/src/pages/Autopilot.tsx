@@ -114,15 +114,26 @@ export default function Autopilot() {
     }
     map.get('S&P 500')!.points = chartData.map((s: any, i: number) => ({ cycle: s.cycle, value: spxPts[i] ?? 0 }))
 
-    const trades: any[] = status.positions ?? []
+    const trades: any[] = status.trades ?? status.positions ?? []
+    const lastCycle = chartData.at(-1)?.cycle ?? 0
     trades.forEach((pos: any, i: number) => {
       const key = pos.symbol
-      if (!map.has(key)) map.set(key, { name: key, color: PALETTE[(i + 2) % PALETTE.length], points: [] })
+      if (!map.has(key)) {
+        // Seed with a 0%-at-cycle-0 baseline so the line renders on the
+        // very first snapshot instead of waiting for a second data point.
+        map.set(key, {
+          name: key,
+          color: PALETTE[(i + 2) % PALETTE.length],
+          points: [{ cycle: 0, value: 0 }],
+        })
+      }
       const s = map.get(key)!
-      const lastCycle = chartData.at(-1)?.cycle ?? 0
-      if (!s.points.length || s.points.at(-1)!.cycle !== lastCycle) {
+      if (s.points.at(-1)!.cycle !== lastCycle) {
         s.points.push({ cycle: lastCycle, value: +(pos.unrealized_plpc ?? 0) })
         if (s.points.length > 100) s.points = s.points.slice(-100)
+      } else {
+        // Update the latest point in place so it tracks live jitter
+        s.points[s.points.length - 1] = { cycle: lastCycle, value: +(pos.unrealized_plpc ?? 0) }
       }
     })
     const active = new Set(['Portfolio', 'S&P 500', ...trades.map((p: any) => p.symbol)])
@@ -251,8 +262,9 @@ export default function Autopilot() {
 
   useEffect(() => {
     load()
-    const iv = setInterval(load, 6000)
-    // Re-paint chart once any freshly requested logo finishes loading
+    // Fast poll (2s) so the chart and decision feed update nearly live —
+    // the backend sim fires every 15s so this matches pace without spam.
+    const iv = setInterval(load, 2000)
     const off = onLogoLoaded(() => renderChart())
     return () => { clearInterval(iv); clearTimeout(brainTimer.current); off() }
   }, [])

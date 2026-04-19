@@ -50,7 +50,7 @@ export default function PortfolioRace() {
   const snapshotsRef = useRef<Snapshot[]>([])
 
   const [isRunning, setIsRunning] = useState(false)
-  const [speed, setSpeed] = useState(5)
+  const [speed, setSpeed] = useState(2)
   const [summary, setSummary] = useState<any>(null)
   const [tradeLog, setTradeLog] = useState<{ time: string; symbol: string; action: string; pct: number }[]>([])
   const markerHits = useRef<Array<{ x: number; y: number; trades: any[]; actionColor: string }>>([])
@@ -102,14 +102,25 @@ export default function PortfolioRace() {
         spx.points = chartData.map((s, i) => ({ cycle: s.cycle, value: spxPts[i] ?? 0 }))
 
         const trades: any[] = status.trades ?? []
+        const lastCycle = chartData.at(-1)?.cycle ?? 0
         trades.forEach((pos: any, i: number) => {
           const key = pos.symbol
-          if (!map.has(key)) map.set(key, { name: key, color: PALETTE[(i + 2) % PALETTE.length], points: [] })
+          if (!map.has(key)) {
+            // Seed with a 0%-at-cycle-0 baseline so the line renders on the
+            // very first snapshot instead of waiting for a second cycle.
+            map.set(key, {
+              name: key,
+              color: PALETTE[(i + 2) % PALETTE.length],
+              points: [{ cycle: 0, value: 0 }],
+            })
+          }
           const s = map.get(key)!
-          const lastCycle = chartData.at(-1)?.cycle ?? 0
-          if (!s.points.length || s.points.at(-1)!.cycle !== lastCycle) {
+          if (s.points.at(-1)!.cycle !== lastCycle) {
             s.points.push({ cycle: lastCycle, value: +(pos.unrealized_plpc ?? 0) })
             if (s.points.length > 100) s.points = s.points.slice(-100)
+          } else {
+            // Update the latest point in place so it tracks live price jitter
+            s.points[s.points.length - 1] = { cycle: lastCycle, value: +(pos.unrealized_plpc ?? 0) }
           }
         })
 
@@ -296,7 +307,7 @@ export default function PortfolioRace() {
             className="px-[10px] py-[5px] font-mono bg-popover border border-white/5 rounded-sm text-foreground"
             style={{ fontSize: 11, width: 70 }}
           >
-            {[2, 5, 10, 30].map(s => <option key={s} value={s}>{s}s</option>)}
+            {[1, 2, 5, 10, 30].map(s => <option key={s} value={s}>{s}s</option>)}
           </select>
         </div>
       </div>

@@ -62,6 +62,19 @@ async def start_agent() -> dict:
         await db.execute(delete(PerformanceSnapshot))
         await db.execute(delete(AgentDecision))
 
+        # Seed a cycle=0 baseline snapshot so the Live Race chart has
+        # something to draw immediately instead of showing the placeholder
+        # for ~30s while waiting for the first real cycle.
+        db.add(PerformanceSnapshot(
+            cycle=0,
+            portfolio_value=account.get("portfolio_value", _start_equity),
+            cash=account.get("cash", _start_equity),
+            equity=_start_equity,
+            pnl_since_start=0.0,
+            pnl_pct_since_start=0.0,
+            open_trades=0,
+        ))
+
         state.is_running = True
         state.started_at = datetime.now(timezone.utc)
         state.stopped_at = None
