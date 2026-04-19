@@ -17,6 +17,8 @@ import time
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
+from services import legislators
+
 load_dotenv()
 logger = logging.getLogger(__name__)
 
@@ -46,7 +48,7 @@ def _state_from_district(district: str | None) -> str:
     return d[:2] if len(d) >= 2 and d[:2].isalpha() else ""
 
 
-def _normalize(row: dict, chamber: str) -> dict | None:
+async def _normalize(row: dict, chamber: str) -> dict | None:
     ticker = (row.get("symbol") or "").strip().upper()
     tx_date = _parse_iso(row.get("transactionDate"))
     disc_date = _parse_iso(row.get("disclosureDate"))
@@ -56,6 +58,7 @@ def _normalize(row: dict, chamber: str) -> dict | None:
     last = (row.get("lastName") or "").strip()
     office = (row.get("office") or "").strip()
     member = f"{first} {last}".strip() or office or "Unknown"
+    photo_url, party = await legislators.resolve(first, last, member)
     return {
         "chamber": chamber,
         "member": member,
@@ -64,11 +67,12 @@ def _normalize(row: dict, chamber: str) -> dict | None:
         "amount": (row.get("amount") or "").strip(),
         "date": tx_date.strftime("%Y-%m-%d"),
         "disclosure_date": disc_date.strftime("%Y-%m-%d") if disc_date else "",
-        "party": "",
+        "party": party,
         "state": _state_from_district(row.get("district")),
         "asset": row.get("assetDescription") or ticker,
         "owner": (row.get("owner") or "").strip(),
         "link": row.get("link") or "",
+        "photo_url": photo_url,
         "_tx": tx_date,
     }
 
@@ -88,7 +92,7 @@ async def _fetch_fmp(url: str, chamber: str, client: httpx.AsyncClient) -> list:
         return []
     out: list = []
     for row in rows:
-        norm = _normalize(row, chamber)
+        norm = await _normalize(row, chamber)
         if not norm or norm["_tx"] < cutoff:
             continue
         out.append(norm)

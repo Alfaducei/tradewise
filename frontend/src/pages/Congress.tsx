@@ -3,7 +3,7 @@ import { analyzeSymbol } from '../api/client'
 import { Zap } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
-import { ICON } from '@/lib/icons'
+import { ICON, LOGO_DOMAIN } from '@/lib/icons'
 
 interface CongressTrade {
   chamber: string
@@ -16,6 +16,52 @@ interface CongressTrade {
   party: string
   state: string
   asset: string
+  owner?: string
+  link?: string
+  photo_url?: string
+}
+
+// Small round/square image with a graceful fallback to a letter tile.
+// Used for both company logos (Clearbit) and politician headshots (bioguide.gov).
+function LogoTile({ ticker }: { ticker: string }) {
+  const [failed, setFailed] = useState(false)
+  const domain = LOGO_DOMAIN[ticker]
+  const letter = ticker.replace(/[^A-Z]/gi, '').slice(0, 1) || '?'
+  if (!domain || failed) {
+    return (
+      <div className="w-8 h-8 rounded-sm bg-popover border border-border flex items-center justify-center font-mono font-bold text-[12px] text-muted-foreground flex-shrink-0">
+        {letter}
+      </div>
+    )
+  }
+  return (
+    <img
+      src={`https://logo.clearbit.com/${domain}`}
+      alt=""
+      onError={() => setFailed(true)}
+      className="w-8 h-8 rounded-sm bg-white object-contain flex-shrink-0"
+    />
+  )
+}
+
+function Avatar({ photoUrl, name }: { photoUrl?: string; name: string }) {
+  const [failed, setFailed] = useState(false)
+  const initials = name.split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
+  if (!photoUrl || failed) {
+    return (
+      <div className="w-8 h-8 rounded-full bg-popover border border-border flex items-center justify-center font-mono font-bold text-[10px] text-muted-foreground flex-shrink-0">
+        {initials}
+      </div>
+    )
+  }
+  return (
+    <img
+      src={photoUrl}
+      alt=""
+      onError={() => setFailed(true)}
+      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+    />
+  )
 }
 
 interface TopTicker {
@@ -178,16 +224,29 @@ export default function CongressTracker() {
               {filtered.map((t, i) => (
                 <tr key={i} className="border-b border-border hover:bg-popover transition-colors">
                   <td className="px-4 py-[10px]">
-                    <div className="text-[13px] font-medium">{t.member}</div>
-                    <div className="text-[11px] font-mono" style={{ color: partyColor(t.party) }}>
-                      {[t.party, t.state].filter(Boolean).join(' · ') || '—'}
+                    <div className="flex items-center gap-[10px]">
+                      <Avatar photoUrl={t.photo_url} name={t.member} />
+                      <div>
+                        <div className="text-[13px] font-medium">{t.member}</div>
+                        <div className="text-[11px] font-mono" style={{ color: partyColor(t.party) }}>
+                          {[t.party, t.state].filter(Boolean).join(' · ') || '—'}
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-[10px] font-mono text-[11px] text-muted-foreground">
                     {t.chamber}
                   </td>
-                  <td className="px-4 py-[10px] font-mono font-bold text-[14px]">
-                    {t.ticker}
+                  <td className="px-4 py-[10px]">
+                    <div className="flex items-center gap-[10px]">
+                      <LogoTile ticker={t.ticker} />
+                      <div className="min-w-0">
+                        <div className="font-mono font-bold text-[14px]">{t.ticker}</div>
+                        <div className="text-[10px] text-muted-foreground truncate max-w-[180px]" title={t.asset}>
+                          {t.asset}
+                        </div>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 py-[10px] font-mono text-xs" style={{ color: txColor(t.transaction) }}>
                     {t.transaction}
