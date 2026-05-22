@@ -48,3 +48,15 @@
 - Typography exceptions (uppercase is intentional):
   - REAL MONEY ACTIVE warning banner (Sidebar live-mode indicator)
   - Any future destructive/warning banners where urgency matters
+
+## Tooling compliance (Tier-0)
+Tier-0 compliant with `~/.claude/standards/global-web-app-stack.md`.
+- Package manager: **pnpm** only (`corepack enable` on a fresh machine)
+- Lint + format: **Biome** (`pnpm biome check .`) — never ESLint/Prettier
+- Existing app on plain Vite — escape hatch applies; no framework migration.
+
+## Agent layer
+- `.claude/skills/` — Superpowers skills (snapshot of the Voltage canonical set)
+- `.claude/memory/MEMORY.md` — rolling memory index
+- `.mcp.json` — Serena MCP
+Session continuity = `.claude/memory/` + `HANDOFF.md`. Do NOT add Beads.
